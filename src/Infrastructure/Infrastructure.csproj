@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="BusinessFramework.Application.Service" />
+        <PackageReference Include="BusinessFramework.Domain.Core" />
+        <PackageReference Include="BusinessFramework.Infrastructure.Common" />
+        <PackageReference Include="BusinessFramework.Infrastructure.SqlCommand" />
+        <PackageReference Include="BusinessFramework.Infrastructure.SqlQuery" />
+        <PackageReference Include="EFCore.NamingConventions" />
+        
+        <PackageReference Include="MassTransit.EntityFrameworkCore" />
+        <PackageReference Include="Microsoft.Extensions.Http">
+          <TreatAsUsed>true</TreatAsUsed>
+        </PackageReference>
+        <PackageReference Include="Npgsql" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Application\Application.csproj" />
+        <ProjectReference Include="..\Domain\Domain.csproj" />
+    </ItemGroup>
+
+</Project>

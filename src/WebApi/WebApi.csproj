@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+
+
+    <ItemGroup>
+        <PackageReference Include="BusinessFramework.Domain.Core" />
+        <PackageReference Include="BusinessFramework.Domain.Toolkits" />
+        <PackageReference Include="BusinessFramework.Application.Common" />
+        <PackageReference Include="BusinessFramework.Endpoint.WebApi" />
+        <PackageReference Include="BusinessFramework.Infrastructure.SqlCommand" />
+        <PackageReference Include="BusinessFramework.Shared.Utilities" />
+        <PackageReference Include="MassTransit" />
+
+        <PackageReference Include="AspNetCore.HealthChecks.Redis" />
+        <PackageReference Include="AspNetCore.HealthChecks.UI.PostgreSQL.Storage" />
+
+        <PackageReference Include="EdgeServicesBuildingBlock.Shared" />
+
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+    </ItemGroup>
+</Project>

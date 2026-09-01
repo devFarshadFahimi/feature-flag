@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+    
+    <ItemGroup>
+
+        <PackageReference Include="BusinessFramework.SourceGenerator">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>
+                runtime; build; native; contentfiles; analyzers; buildtransitive
+            </IncludeAssets>
+        </PackageReference>
+        
+        <PackageReference Include="BusinessFramework.Application.Common" />
+        <PackageReference Include="BusinessFramework.Application.Service" />
+        <PackageReference Include="BusinessFramework.Domain.Core" />
+        <PackageReference Include="BusinessFramework.Shared.Abstractions.Caching" />
+        <PackageReference Include="BusinessFramework.Shared.Abstractions.Serializer" />
+        <PackageReference Include="BusinessFramework.Shared.Extensions.Caching.InMemory" />
+        <PackageReference Include="BusinessFramework.Shared.Extensions.Serializer.Microsoft" />
+        <PackageReference Include="BusinessFramework.Shared.Utilities" />
+        <PackageReference Include="prometheus-net" />
+
+        <PackageReference Include="EdgeServicesBuildingBlock.Shared" />
+
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Domain\Domain.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Features\" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+    <ItemGroup>
+      <PackageReference Include="BusinessFramework.Domain.Core" />
+      <PackageReference Include="BusinessFramework.Domain.Toolkits" />
+    </ItemGroup>
+
+</Project>
