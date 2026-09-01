@@ -1,0 +1,21 @@
+<Project>
+    <PropertyGroup>
+        <Title>API Response</Title>
+        <Authors>Farshad Fahimi</Authors>
+        <Description>Standardised API Response</Description>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn),1573,1591,1712</NoWarn>
+        <StyleCopTreatErrorsAsWarnings>false</StyleCopTreatErrorsAsWarnings>
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="StyleCop.Analyzers"
+                          PrivateAssets="all"
+                          Condition="$(MSBuildProjectExtension) == '.csproj'"
+                         />
+    </ItemGroup>
+
+</Project>

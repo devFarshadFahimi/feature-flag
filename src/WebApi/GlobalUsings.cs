@@ -1,0 +1,1 @@
+﻿global using BusinessMakerFramework.Endpoint.WebApi.DependencyInjections;

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        <MicrosoftRelatedPackagesVersion>9.0.8</MicrosoftRelatedPackagesVersion>
+        <SerilogRelatedPackagesVersion>3.0.1</SerilogRelatedPackagesVersion>
+        <BusinessFrameworkPackagesVersion>0.1.21</BusinessFrameworkPackagesVersion>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageVersion Include="OpenIddict.AspNetCore" Version="7.0.0"/>
+        <PackageVersion Include="BusinessFramework.Application.Common" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="BusinessFramework.Application.Service" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="BusinessFramework.Domain.Core" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="BusinessFramework.Domain.Toolkits" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="BusinessFramework.Endpoint.WebApi" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="BusinessFramework.Infrastructure.Common" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="BusinessFramework.Infrastructure.SqlCommand" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="BusinessFramework.Infrastructure.SqlQuery" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="BusinessFramework.Shared.Abstractions.Caching" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="BusinessFramework.Shared.Abstractions.Serializer" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="BusinessFramework.Shared.Extensions.Caching.InMemory" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="BusinessFramework.Shared.Extensions.Serializer.Microsoft" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="BusinessFramework.Shared.Utilities" Version="$(BusinessFrameworkPackagesVersion)"/>
+        <PackageVersion Include="Castle.Core" Version="5.1.1"/>
+        <PackageVersion Include="EFCore.NamingConventions" Version="9.0.0"/>
+        <PackageVersion Include="Grpc.AspNetCore" Version="2.71.0"/>
+        <PackageVersion Include="Grpc.Net.Client" Version="2.71.0"/>
+        <PackageVersion Include="MongoDB.Bson" Version="3.2.1"/>
+        <PackageVersion Include="MassTransit.MongoDb" Version="8.3.7"/>
+        <PackageVersion Include="MongoDB.Driver" Version="3.2.1"/>
+        <PackageVersion Include="MassTransit.EntityFrameworkCore" Version="8.3.7"/>
+        <PackageVersion Include="MassTransit" Version="8.3.7"/>
+        <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.3"/>
+        <PackageVersion Include="Minio" Version="6.0.4"/>
+        <PackageVersion Include="Npgsql" Version="9.0.3"/>
+        <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4"/>
+        <PackageVersion Include="Scalar.AspNetCore" Version="2.6.9"/>
+        <PackageVersion Include="StyleCop.Analyzers" Version="1.1.118"/>
+        <PackageVersion Include="Asp.Versioning.Mvc" Version="8.1.0"/>
+        <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0"/>
+        <PackageVersion Include="Bogus" Version="35.6.3"/>
+        <PackageVersion Include="Confluent.Kafka" Version="2.9.0"/>
+        <PackageVersion Include="DotNetRateLimiter" Version="3.0.1"/>
+        <PackageVersion Include="EventStore.Client.Grpc.Streams" Version="23.3.8"/>
+        <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0"/>
+        <PackageVersion Include="Mapster" Version="7.4.0"/>
+        <PackageVersion Include="MediatR" Version="12.5.0"/>
+        <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(MicrosoftRelatedPackagesVersion)"/>
+        <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftRelatedPackagesVersion)"/>
+        <PackageVersion Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="$(MicrosoftRelatedPackagesVersion)"/>
+        <PackageVersion Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="9.0.3"/>
+        <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="$(MicrosoftRelatedPackagesVersion)"/>
+        <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(MicrosoftRelatedPackagesVersion)"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(MicrosoftRelatedPackagesVersion)"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftRelatedPackagesVersion)"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftRelatedPackagesVersion)"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="$(MicrosoftRelatedPackagesVersion)"/>
+        <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftRelatedPackagesVersion)"/>
+        <PackageVersion Include="Microsoft.Extensions.Identity.Stores" Version="$(MicrosoftRelatedPackagesVersion)"/>
+        <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.7.0"/>
+        <PackageVersion Include="Newtonsoft.Json" Version="13.0.3"/>
+        <PackageVersion Include="ocelot.provider.consul" Version="23.4.3"/>
+        <PackageVersion Include="prometheus-net" Version="8.2.1"/>
+        <PackageVersion Include="RabbitMQ.Client" Version="7.0.0"/>
+        <PackageVersion Include="Swashbuckle.AspNetCore" Version="8.1.0"/>
+        <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.7.0"/>
+        <PackageVersion Include="AspNetCore.HealthChecks.UI.InMemory.Storage" Version="9.0.0"/>
+        <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0"/>
+        <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="9.0.0"/>
+        <PackageVersion Include="AspNetCore.HealthChecks.UI" Version="9.0.0"/>
+        <PackageVersion Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0"/>
+        <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.3"/>
+        <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.3"/>
+    </ItemGroup>
+</Project>
