@@ -1,6 +1,6 @@
 ﻿using WebApi.ProgramConfiguration;
 
-WebApplication.CreateBuilder(args)
+await WebApplication.CreateBuilder(args)
     .AddServices()
     .Build()
     .UseWebApiConfiguration();

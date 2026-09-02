@@ -49,3 +49,54 @@ public class ApiTokenConfiguration : ApplicationConfiguration<ApiToken>
         _ = builder.HasIndex(t => new { t.TokenHash, t.IsRevoked });
     }
 }
+
+
+
+
+public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
+{
+    public void Configure(EntityTypeBuilder<RefreshToken> builder)
+    {
+        builder.ToTable("RefreshTokens");
+
+        builder.Property<int>("Id")
+            .ValueGeneratedOnAdd();
+        builder.HasKey("Id");
+
+        builder.Property<Guid>("UserId")
+            .IsRequired();
+
+        builder.Property(rt => rt.Token)
+            .IsRequired()
+            .HasMaxLength(512);
+
+        builder.Property(rt => rt.JwtId)
+            .IsRequired()
+            .HasMaxLength(256);
+
+        builder.Property(rt => rt.IsUsed)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(rt => rt.IsRevoked)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(rt => rt.CreatedAt)
+            .IsRequired();
+
+        builder.Property(rt => rt.ExpiresAt)
+            .IsRequired();
+
+        // Indexes
+        builder.HasIndex(rt => rt.Token)
+            .IsUnique()
+            .HasDatabaseName("IX_RefreshTokens_Token");
+
+        builder.HasIndex("UserId")
+            .HasDatabaseName("IX_RefreshTokens_UserId");
+
+        builder.HasIndex(rt => rt.ExpiresAt)
+            .HasDatabaseName("IX_RefreshTokens_ExpiresAt");
+    }
+}

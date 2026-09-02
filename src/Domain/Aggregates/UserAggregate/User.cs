@@ -71,4 +71,70 @@ public sealed class User : AggregateRoot<Guid>
     {
         LastLoginAt = DateTime.UtcNow;
     }
+
+    public RefreshToken AddRefreshToken(string token, string jwtId, TimeSpan expiration)
+    {
+        var refreshToken = RefreshToken.Create(Id, token, jwtId, expiration);
+        _refreshTokens.Add(refreshToken);
+        return refreshToken;
+    }
+
+    public void RevokeRefreshToken(string token)
+    {
+        var refreshToken = _refreshTokens.FirstOrDefault(rt => rt.Token == token)
+            ?? throw new DomainException("Refresh token not found");
+
+        refreshToken.Revoke();
+    }
+
+    public void RevokeAllRefreshTokens()
+    {
+        foreach (var token in _refreshTokens.Where(rt => !rt.IsRevoked))
+        {
+            token.Revoke();
+        }
+    }
+}
+
+public sealed class RefreshToken : Entity<Guid>
+{
+    public Guid UserId { get; private set; }
+    public string Token { get; private set; }
+    public string JwtId { get; private set; }
+    public bool IsUsed { get; private set; }
+    public bool IsRevoked { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime ExpiresAt { get; private set; }
+
+    private RefreshToken() { }
+
+    public static RefreshToken Create(Guid userId, string token, string jwtId, TimeSpan expiration)
+    {
+        return new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Token = token,
+            JwtId = jwtId,
+            IsUsed = false,
+            IsRevoked = false,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.Add(expiration)
+        };
+    }
+
+    public void MarkAsUsed()
+    {
+        IsUsed = true;
+    }
+
+    public void Revoke()
+    {
+        IsRevoked = true;
+    }
+
+    public bool IsValid()
+    {
+        return !IsUsed && !IsRevoked && DateTime.UtcNow < ExpiresAt;
+    }
 }

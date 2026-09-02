@@ -25,6 +25,21 @@ public static class DependencyInjections
         _ = services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
         _ = services.AddOptionsSetups();
         _ = services.AddDateTimeService();
+
+        // Settings
+        services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+
+        // Services
+        services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
+
         return services;
     }
+
+    public static async Task SeedDatabaseAsync(this IServiceProvider serviceProvider)
+    {
+        await DatabaseSeeder.SeedAdminUserAsync(serviceProvider);
+    }
+
 }

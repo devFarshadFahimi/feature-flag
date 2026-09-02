@@ -49,6 +49,11 @@ public static class ServiceCollections
         //        })
         //)
 
+
+        // Add layers
+        builder.Services.AddApplication();
+        builder.Services.AddInfrastructure(builder.Configuration);
+        builder.Services.AddJwtAuthentication(builder.Configuration);
         return builder;
     }
 
