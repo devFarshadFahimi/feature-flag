@@ -10,8 +10,7 @@ public sealed class Segment : AggregateRoot<int>
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastUsedAt { get; private set; }
 
-    private readonly List<Constraint> _constraints = [];
-    public IReadOnlyCollection<Constraint> Constraints => _constraints.AsReadOnly();
+    public List<Constraint> Constraints { get; private set; } = [];
 
 
 
@@ -28,10 +27,10 @@ public sealed class Segment : AggregateRoot<int>
 
         if (constraints != null)
         {
-            segment._constraints.AddRange(constraints);
+            segment.Constraints.AddRange(constraints);
         }
 
-        segment.Apply(new SegmentCreatedEvent(segment.Id, name));
+        segment.AddEvent(new SegmentCreatedEvent(segment.Id, name));
         return segment;
     }
     private Segment()
@@ -45,23 +44,23 @@ public sealed class Segment : AggregateRoot<int>
 
     public void AddConstraint(Constraint constraint)
     {
-        _constraints.Add(constraint);
+        Constraints.Add(constraint);
     }
 
     public void RemoveConstraint(int index)
     {
-        if (index < 0 || index >= _constraints.Count)
+        if (index < 0 || index >= Constraints.Count)
         {
             throw new ArgumentOutOfRangeException(nameof(index));
         }
 
-        _constraints.RemoveAt(index);
+        Constraints.RemoveAt(index);
     }
 
     public void UpdateConstraints(IEnumerable<Constraint> constraints)
     {
-        _constraints.Clear();
-        _constraints.AddRange(constraints);
+        Constraints.Clear();
+        Constraints.AddRange(constraints);
     }
 
     public void MarkAsUsed()

@@ -4,6 +4,8 @@ public sealed class ProjectMember : Entity<Guid>
 {
     public Guid UserId { get; private set; }
     public ProjectRole Role { get; private set; }
+    public Guid ProjectId { get; private set; }
+    public Project Project { get; private set; } = null!;
 
     public ProjectMember(Guid userId, ProjectRole role)
     {

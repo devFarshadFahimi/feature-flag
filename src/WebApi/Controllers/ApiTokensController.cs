@@ -1,12 +1,7 @@
-using Application.Features.ApiTokens.Queries.GetAllApiTokens;
-using Application.Features.ApiTokens.Queries.GetApiTokenById;
-using Microsoft.AspNetCore.Mvc;
-
 namespace WebApi.Controllers;
 
 [Authorize]
-[Route("api/tokens")]
-public class ApiTokensController(IMediator mediator) : BusinessApiControllerBase(mediator)
+public class ApiTokensController(IMediator mediator) : ApiControllerBase(mediator)
 {
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] Guid? environmentId, CancellationToken cancellationToken)

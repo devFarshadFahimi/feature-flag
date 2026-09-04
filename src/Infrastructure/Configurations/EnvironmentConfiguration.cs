@@ -36,7 +36,14 @@ public class EnvironmentConfiguration : ApplicationConfiguration<Domain.Aggregat
 
         _ = builder.HasIndex(e => e.SortOrder);
 
-        // Tokens handled via separate aggregate
-        _ = builder.Ignore(e => e.Tokens);
+        _ = builder.HasMany(p => p.Tokens)
+            .WithOne()
+            .HasForeignKey(p => p.EnvironmentId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        _ = builder.HasMany(p => p.ChangeRequests)
+            .WithOne(p => p.Environment)
+            .HasForeignKey(p => p.EnvironmentId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

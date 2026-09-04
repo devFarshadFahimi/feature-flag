@@ -1,8 +1,12 @@
-﻿using Application.Common.Services;
+﻿using Application.Common.Interfaces;
+using Application.Common.Services;
+using Application.Common.Settings;
 using BusinessMakerFramework.Application.Service;
 using BusinessMakerFramework.Infrastructure.SqlCommand.Interceptors;
 using BusinessMakerFramework.Shared.Extensions.UserManagement.Extensions.DependencyInjection;
 using Infrastructure.Options.Extensions;
+using Infrastructure.Persistence.Seed;
+using Infrastructure.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,12 +31,12 @@ public static class DependencyInjections
         _ = services.AddDateTimeService();
 
         // Settings
-        services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+        _ = services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
 
         // Services
-        services.AddScoped<IPasswordHasher, PasswordHasher>();
-        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
-        services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
+        _ = services.AddScoped<IPasswordHasher, PasswordHasher>();
+        _ = services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        _ = services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
 
         return services;
     }

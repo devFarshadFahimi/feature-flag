@@ -1,11 +1,16 @@
 ﻿using Domain.Aggregates.ChangeRequestAggregate.Events;
+using Domain.Aggregates.ProjectAggregate;
 
 namespace Domain.Aggregates.ChangeRequestAggregate;
 
 public sealed class ChangeRequest : AggregateRoot<Guid>
 {
     public Guid ProjectId { get; private set; }
+    public Project Project { get; private set; } = null!;
+
     public Guid EnvironmentId { get; private set; }
+    public Environment Environment { get; private set; }
+
     public Guid CreatedBy { get; private set; }
     public ChangeRequestStatus Status { get; private set; }
     public string? Title { get; private set; }
@@ -15,11 +20,9 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
     public DateTime? ReviewedAt { get; private set; }
     public Guid? ReviewedBy { get; private set; }
 
-    private readonly List<ChangeRequestItem> _items = [];
-    public IReadOnlyCollection<ChangeRequestItem> Items => _items.AsReadOnly();
+    public ICollection<ChangeRequestItem> Items { get; private set; } = [];
 
-    private readonly List<Guid> _reviewers = [];
-    public IReadOnlyCollection<Guid> Reviewers => _reviewers.AsReadOnly();
+    public List<Guid> Reviewers { get; private set; } = [];
 
     private ChangeRequest()
     {
@@ -39,21 +42,21 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
             CreatedAt = DateTime.UtcNow
         };
 
-        cr.Apply(new ChangeRequestCreatedEvent(cr.Id, projectId, environmentId));
+        cr.AddEvent(new ChangeRequestCreatedEvent(cr.Id, projectId, environmentId));
         return cr;
     }
 
     public void AddItem(ChangeRequestItem item)
     {
-        _items.Add(item);
+        Items.Add(item);
     }
 
     public void RemoveItem(Guid itemId)
     {
-        var item = _items.FirstOrDefault(i => i.Id == itemId)
+        var item = Items.FirstOrDefault(i => i.Id == itemId)
             ?? throw new InvalidEntityStateException($"Item {itemId} not found");
 
-        _items.Remove(item);
+        _ = Items.Remove(item);
     }
 
     public void SubmitForReview()
@@ -128,32 +131,9 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
 
     public void AddReviewer(Guid reviewerId)
     {
-        if (!_reviewers.Contains(reviewerId))
+        if (!Reviewers.Contains(reviewerId))
         {
-            _reviewers.Add(reviewerId);
+            Reviewers.Add(reviewerId);
         }
-    }
-}
-
-public sealed class ChangeRequestItem : Entity<Guid>
-{
-    public Guid ChangeRequestId { get; private set; }
-    public string Action { get; private set; }
-    public Guid? FeatureId { get; private set; }
-    public string? Payload { get; private set; }
-
-    private ChangeRequestItem()
-    {
-    }
-
-    public static ChangeRequestItem Create(string action, Guid? featureId = null, string? payload = null)
-    {
-        return new ChangeRequestItem
-        {
-            Id = Guid.NewGuid(),
-            Action = action,
-            FeatureId = featureId,
-            Payload = payload
-        };
     }
 }

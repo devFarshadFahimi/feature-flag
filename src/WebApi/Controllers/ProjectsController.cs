@@ -1,17 +1,16 @@
 using Application.Features.Projects.Commands.AddProjectMember;
-using Application.Features.Projects.Commands.CreateProject;
-using Application.Features.Projects.Commands.DeleteProject;
+using Application.Features.Projects.Commands.Create;
+using Application.Features.Projects.Commands.Delete;
 using Application.Features.Projects.Commands.RemoveProjectMember;
 using Application.Features.Projects.Commands.SetProjectFeatureLimit;
-using Application.Features.Projects.Commands.UpdateProject;
+using Application.Features.Projects.Commands.Update;
 using Application.Features.Projects.Queries.GetAllProjects;
 using Application.Features.Projects.Queries.GetProjectById;
-using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
 
 [Authorize]
-public class ProjectsController(IMediator mediator) : BusinessApiControllerBase(mediator)
+public class ProjectsController(IMediator mediator) : ApiControllerBase(mediator)
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateProjectCommand command, CancellationToken cancellationToken)
@@ -34,9 +33,7 @@ public class ProjectsController(IMediator mediator) : BusinessApiControllerBase(
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectCommand command, CancellationToken cancellationToken)
     {
-        if (id != command.Id)
-            return BadRequest(new { Message = "Id mismatch" });
-        return await SendAsync(command, cancellationToken);
+        return id != command.Id ? BadRequest(new { Message = "Id mismatch" }) : await SendAsync(command, cancellationToken);
     }
 
     [HttpDelete("{id:guid}")]
@@ -48,9 +45,7 @@ public class ProjectsController(IMediator mediator) : BusinessApiControllerBase(
     [HttpPost("{id:guid}/members")]
     public async Task<IActionResult> AddMember(Guid id, [FromBody] AddProjectMemberCommand command, CancellationToken cancellationToken)
     {
-        if (id != command.ProjectId)
-            return BadRequest(new { Message = "Project id mismatch" });
-        return await SendAsync(command, cancellationToken);
+        return id != command.ProjectId ? BadRequest(new { Message = "Project id mismatch" }) : await SendAsync(command, cancellationToken);
     }
 
     [HttpDelete("{id:guid}/members/{userId:guid}")]
@@ -62,8 +57,6 @@ public class ProjectsController(IMediator mediator) : BusinessApiControllerBase(
     [HttpPut("{id:guid}/feature-limit")]
     public async Task<IActionResult> SetFeatureLimit(Guid id, [FromBody] SetProjectFeatureLimitCommand command, CancellationToken cancellationToken)
     {
-        if (id != command.ProjectId)
-            return BadRequest(new { Message = "Project id mismatch" });
-        return await SendAsync(command, cancellationToken);
+        return id != command.ProjectId ? BadRequest(new { Message = "Project id mismatch" }) : await SendAsync(command, cancellationToken);
     }
 }

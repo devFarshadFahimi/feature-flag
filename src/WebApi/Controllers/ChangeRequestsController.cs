@@ -8,12 +8,11 @@ using Application.Features.ChangeRequests.Commands.ScheduleChangeRequest;
 using Application.Features.ChangeRequests.Commands.SubmitChangeRequestForReview;
 using Application.Features.ChangeRequests.Queries.GetAllChangeRequests;
 using Application.Features.ChangeRequests.Queries.GetChangeRequestById;
-using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
 
 [Authorize]
-public class ChangeRequestsController(IMediator mediator) : BusinessApiControllerBase(mediator)
+public class ChangeRequestsController(IMediator mediator) : ApiControllerBase(mediator)
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateChangeRequestCommand command, CancellationToken cancellationToken)
@@ -36,9 +35,9 @@ public class ChangeRequestsController(IMediator mediator) : BusinessApiControlle
     [HttpPost("{id:guid}/items")]
     public async Task<IActionResult> AddItem(Guid id, [FromBody] AddChangeRequestItemCommand command, CancellationToken cancellationToken)
     {
-        if (id != command.ChangeRequestId)
-            return BadRequest(new { Message = "Change request id mismatch" });
-        return await SendAsync(command, cancellationToken);
+        return id != command.ChangeRequestId
+            ? BadRequest(new { Message = "Change request id mismatch" })
+            : await SendAsync(command, cancellationToken);
     }
 
     [HttpPost("{id:guid}/submit")]
@@ -50,17 +49,13 @@ public class ChangeRequestsController(IMediator mediator) : BusinessApiControlle
     [HttpPost("{id:guid}/approve")]
     public async Task<IActionResult> Approve(Guid id, [FromBody] ApproveChangeRequestCommand command, CancellationToken cancellationToken)
     {
-        if (id != command.Id)
-            return BadRequest(new { Message = "Id mismatch" });
-        return await SendAsync(command, cancellationToken);
+        return id != command.Id ? BadRequest(new { Message = "Id mismatch" }) : await SendAsync(command, cancellationToken);
     }
 
     [HttpPost("{id:guid}/reject")]
     public async Task<IActionResult> Reject(Guid id, [FromBody] RejectChangeRequestCommand command, CancellationToken cancellationToken)
     {
-        if (id != command.Id)
-            return BadRequest(new { Message = "Id mismatch" });
-        return await SendAsync(command, cancellationToken);
+        return id != command.Id ? BadRequest(new { Message = "Id mismatch" }) : await SendAsync(command, cancellationToken);
     }
 
     [HttpPost("{id:guid}/apply")]
@@ -72,9 +67,7 @@ public class ChangeRequestsController(IMediator mediator) : BusinessApiControlle
     [HttpPost("{id:guid}/schedule")]
     public async Task<IActionResult> Schedule(Guid id, [FromBody] ScheduleChangeRequestCommand command, CancellationToken cancellationToken)
     {
-        if (id != command.Id)
-            return BadRequest(new { Message = "Id mismatch" });
-        return await SendAsync(command, cancellationToken);
+        return id != command.Id ? BadRequest(new { Message = "Id mismatch" }) : await SendAsync(command, cancellationToken);
     }
 
     [HttpPost("{id:guid}/cancel")]

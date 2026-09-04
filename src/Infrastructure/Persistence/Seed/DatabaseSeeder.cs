@@ -1,7 +1,7 @@
 using Application.Common.Interfaces;
-using Domain.Aggregates.Users;
+using Application.Common.Services;
+using Domain.Aggregates.UserAggregate;
 using Domain.Enums;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -14,7 +14,7 @@ public static class DatabaseSeeder
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<IApplicationDbContext>>();
 
         try
         {
@@ -36,7 +36,7 @@ public static class DatabaseSeeder
                 UserRole.RootAdmin,
                 "System Administrator");
 
-            dbContext.Users.Add(adminUser);
+            _ = dbContext.Users.Add(adminUser);
             await dbContext.SaveChangeAsync(CancellationToken.None);
 
             logger.LogInformation("Admin user seeded successfully");

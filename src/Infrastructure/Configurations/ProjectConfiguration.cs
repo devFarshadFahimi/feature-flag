@@ -32,17 +32,18 @@ public class ProjectConfiguration : ApplicationConfiguration<Project>
 
         // Relationships
         _ = builder.HasMany(p => p.Features)
-            .WithOne()
+            .WithOne(p => p.Project)
             .HasForeignKey(f => f.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
 
         _ = builder.HasMany(p => p.Members)
-            .WithOne()
-            .HasForeignKey("ProjectId")
+            .WithOne(p => p.Project)
+            .HasForeignKey(p => p.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Ignore domain-only collections that are managed via child configs
-        _ = builder.Ignore(p => p.Features);  // if handled via FeatureConfiguration
-        _ = builder.Ignore(p => p.Members);   // if handled via ProjectMemberConfiguration
+        _ = builder.HasMany(p => p.ChangeRequests)
+            .WithOne(p => p.Project)
+            .HasForeignKey(p => p.ProjectId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

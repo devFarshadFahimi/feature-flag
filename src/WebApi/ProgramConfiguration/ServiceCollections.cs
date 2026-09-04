@@ -5,6 +5,7 @@ using BusinessMakerFramework.Endpoint.WebApi.ScalarSetup.Transformers;
 using BusinessMakerFramework.Endpoint.WebApi.SwaggerSetup;
 using EdgeServicesBuildingBlock.Shared.ExceptionHandlers;
 using Infrastructure;
+using WebApi.Configuration;
 
 namespace WebApi.ProgramConfiguration;
 
@@ -16,6 +17,8 @@ public static class ServiceCollections
         _ = SetupOpenApi(builder);
 
         _ = builder.Services.AddHealthChecks();
+
+        builder.Services.AddDomainExceptionHandler();
 
         builder.Services.AddFrameworkExceptionHandler();
         _ = builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -51,9 +54,9 @@ public static class ServiceCollections
 
 
         // Add layers
-        builder.Services.AddApplication();
-        builder.Services.AddInfrastructure(builder.Configuration);
-        builder.Services.AddJwtAuthentication(builder.Configuration);
+        _ = builder.Services.AddApplicationServices();
+        _ = builder.Services.AddInfrastructureServices(builder.Configuration);
+        _ = builder.Services.AddJwtAuthentication(builder.Configuration);
         return builder;
     }
 

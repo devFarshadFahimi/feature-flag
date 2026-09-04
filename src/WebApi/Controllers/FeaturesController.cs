@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApi.Controllers;
 
 [Authorize]
-public class FeaturesController(IMediator mediator) : BusinessApiControllerBase(mediator)
+public class FeaturesController(IMediator mediator) : ApiControllerBase(mediator)
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateFeatureCommand command, CancellationToken cancellationToken)
@@ -36,7 +36,10 @@ public class FeaturesController(IMediator mediator) : BusinessApiControllerBase(
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFeatureCommand command, CancellationToken cancellationToken)
     {
         if (id != command.Id)
+        {
             return BadRequest(new { Message = "Id mismatch" });
+        }
+
         return await SendAsync(command, cancellationToken);
     }
 
@@ -50,7 +53,10 @@ public class FeaturesController(IMediator mediator) : BusinessApiControllerBase(
     public async Task<IActionResult> MarkAsStale(Guid id, [FromBody] MarkFeatureAsStaleCommand command, CancellationToken cancellationToken)
     {
         if (id != command.Id)
+        {
             return BadRequest(new { Message = "Id mismatch" });
+        }
+
         return await SendAsync(command, cancellationToken);
     }
 
@@ -58,7 +64,10 @@ public class FeaturesController(IMediator mediator) : BusinessApiControllerBase(
     public async Task<IActionResult> EnableImpressionData(Guid id, [FromBody] EnableFeatureImpressionDataCommand command, CancellationToken cancellationToken)
     {
         if (id != command.Id)
+        {
             return BadRequest(new { Message = "Id mismatch" });
+        }
+
         return await SendAsync(command, cancellationToken);
     }
 
@@ -66,7 +75,10 @@ public class FeaturesController(IMediator mediator) : BusinessApiControllerBase(
     public async Task<IActionResult> AddTag(Guid id, [FromBody] AddFeatureTagCommand command, CancellationToken cancellationToken)
     {
         if (id != command.FeatureId)
+        {
             return BadRequest(new { Message = "Feature id mismatch" });
+        }
+
         return await SendAsync(command, cancellationToken);
     }
 

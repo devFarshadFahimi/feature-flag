@@ -1,8 +1,3 @@
-using Application.Common.Interfaces;
-using Domain.Aggregates.ChangeRequests;
-using Domain.Exceptions;
-using Microsoft.EntityFrameworkCore;
-
 namespace Application.Features.ChangeRequests.Queries.GetChangeRequestById;
 
 public record GetChangeRequestByIdQuery(Guid Id) : IQueryRequest<ChangeRequestResponse>;
@@ -27,32 +22,18 @@ public record ChangeRequestItemResponse(
     Guid? FeatureId,
     string? Payload);
 
-internal class GetChangeRequestByIdQueryHandler(IApplicationDbContext dbContext) 
+internal class GetChangeRequestByIdQueryHandler(IApplicationDbContext dbContext)
     : QueryRequestHandler<GetChangeRequestByIdQuery, ChangeRequestResponse>
 {
     public override async Task<ChangeRequestResponse> Handle(GetChangeRequestByIdQuery request, CancellationToken cancellationToken)
-{
-    var changeRequest = await dbContext.ChangeRequests
-        .Include(cr => cr.Items)
-        .FirstOrDefaultAsync(cr => cr.Id == request.Id, cancellationToken)
-        ?? throw new EntityNotFoundException(nameof(ChangeRequest), request.Id);
+    {
+        var changeRequest = await dbContext.ChangeRequests
+            .Include(cr => cr.Items)
+            .Where(cr => cr.Id == request.Id)
+            .ProjectToType<ChangeRequestResponse>()
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidEntityStateException(nameof(ChangeRequest), request.Id + string.Empty);
 
-    return new ChangeRequestResponse(
-        changeRequest.Id,
-        changeRequest.ProjectId,
-        changeRequest.EnvironmentId,
-        changeRequest.CreatedBy,
-        changeRequest.Status.ToString(),
-        changeRequest.Title,
-        changeRequest.Description,
-        changeRequest.ScheduledAt,
-        changeRequest.CreatedAt,
-        changeRequest.ReviewedAt,
-        changeRequest.ReviewedBy,
-        changeRequest.Items.Select(i => new ChangeRequestItemResponse(
-            i.Id,
-            i.Action,
-            i.FeatureId,
-            i.Payload)).ToList());
-}
+        return changeRequest;
+    }
 }

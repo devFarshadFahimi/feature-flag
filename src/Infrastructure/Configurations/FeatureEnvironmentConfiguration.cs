@@ -29,11 +29,19 @@ public class FeatureEnvironmentConfiguration : ApplicationConfiguration<FeatureE
 
         // Relationships
         _ = builder.HasMany(fe => fe.Strategies)
-            .WithOne()
-            .HasForeignKey(s => new { s.FeatureId, s.EnvironmentId })
+            .WithOne(p => p.FeatureEnvironment)
+            .HasForeignKey(s => s.FeatureEnvironmentId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        _ = builder.Ignore(fe => fe.Strategies);
-        _ = builder.Ignore(fe => fe.Variants); // handled via FeatureVariantConfiguration
+        _ = builder.HasMany(fe => fe.Variants)
+            .WithOne()
+            .HasForeignKey("StrategyId")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        _ = builder.HasMany(fe => fe.Variants)
+            .WithOne()
+            .HasForeignKey("FeatureEnvironmentId")
+            .OnDelete(DeleteBehavior.Cascade);
+
     }
 }

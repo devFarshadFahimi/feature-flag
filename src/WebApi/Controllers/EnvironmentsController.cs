@@ -7,12 +7,11 @@ using Application.Features.Environments.Commands.RevokeApiToken;
 using Application.Features.Environments.Commands.UpdateEnvironment;
 using Application.Features.Environments.Queries.GetAllEnvironments;
 using Application.Features.Environments.Queries.GetEnvironmentById;
-using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
 
 [Authorize]
-public class EnvironmentsController(IMediator mediator) : BusinessApiControllerBase(mediator)
+public class EnvironmentsController(IMediator mediator) : ApiControllerBase(mediator)
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEnvironmentCommand command, CancellationToken cancellationToken)
@@ -35,9 +34,7 @@ public class EnvironmentsController(IMediator mediator) : BusinessApiControllerB
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEnvironmentCommand command, CancellationToken cancellationToken)
     {
-        if (id != command.Id)
-            return BadRequest(new { Message = "Id mismatch" });
-        return await SendAsync(command, cancellationToken);
+        return id != command.Id ? BadRequest(new { Message = "Id mismatch" }) : await SendAsync(command, cancellationToken);
     }
 
     [HttpDelete("{id:guid}")]
@@ -61,9 +58,9 @@ public class EnvironmentsController(IMediator mediator) : BusinessApiControllerB
     [HttpPost("{id:guid}/tokens")]
     public async Task<IActionResult> CreateToken(Guid id, [FromBody] CreateApiTokenCommand command, CancellationToken cancellationToken)
     {
-        if (id != command.EnvironmentId)
-            return BadRequest(new { Message = "Environment id mismatch" });
-        return await SendAsync(command, cancellationToken);
+        return id != command.EnvironmentId
+            ? BadRequest(new { Message = "Environment id mismatch" })
+            : await SendAsync(command, cancellationToken);
     }
 
     [HttpPost("{id:guid}/tokens/{tokenId:guid}/revoke")]

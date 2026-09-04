@@ -1,7 +1,4 @@
-using Application.Common.Interfaces;
-using Application.Common.Models;
-using Domain.Aggregates.Segments;
-using Domain.Enums;
+using Domain.Aggregates.SegmentAggregate;
 using Domain.ValueObjects;
 
 namespace Application.Features.Segments.Commands.CreateSegment;
@@ -19,17 +16,17 @@ public record ConstraintDto(
     bool Inverted = false,
     bool CaseInsensitive = false);
 
-internal class CreateSegmentCommandHandler(IApplicationDbContext dbContext) 
+internal class CreateSegmentCommandHandler(IApplicationDbContext dbContext)
     : CommandRequestHandler<CreateSegmentCommand, int>
 {
     public override async Task<Result<int>> Handle(CreateSegmentCommand request, CancellationToken cancellationToken)
-{
-    var constraints = request.Constraints?.Select(c =>
-        Constraint.Create(c.ContextName, c.Operator, c.Values, c.Inverted, c.CaseInsensitive)).ToList();
+    {
+        var constraints = request.Constraints?.Select(c =>
+            Constraint.Create(c.ContextName, c.Operator, c.Values, c.Inverted, c.CaseInsensitive)).ToList();
 
-    var segment = Segment.Create(request.Name, request.Description, constraints, request.IsPublic);
-    dbContext.Segments.Add(segment);
-    await dbContext.SaveChangeAsync(cancellationToken);
-    return Ok(segment.Id);
-}
+        var segment = Segment.Create(request.Name, request.Description, constraints, request.IsPublic);
+        _ = dbContext.Segments.Add(segment);
+        await dbContext.SaveChangeAsync(cancellationToken);
+        return Ok(segment.Id);
+    }
 }

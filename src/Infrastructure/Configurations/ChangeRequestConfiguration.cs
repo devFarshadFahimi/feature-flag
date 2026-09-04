@@ -55,11 +55,12 @@ public class ChangeRequestConfiguration : ApplicationConfiguration<ChangeRequest
 
         // Relationships
         _ = builder.HasMany(cr => cr.Items)
-            .WithOne()
+            .WithOne(p => p.ChangeRequest)
             .HasForeignKey(i => i.ChangeRequestId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        _ = builder.Ignore(cr => cr.Items);
-        _ = builder.Ignore(cr => cr.Reviewers); // handled via separate table
+        _ = builder.PrimitiveCollection(p => p.Reviewers);
+
+        //_ = builder.Ignore(cr => cr.Reviewers); // handled via separate table
     }
 }

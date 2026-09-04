@@ -1,81 +1,83 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <MicrosoftRelatedPackagesVersion>10.0.8</MicrosoftRelatedPackagesVersion>
-    <BusinessFrameworkPackagesVersion>0.3.20</BusinessFrameworkPackagesVersion>
-    <BuildingBlockPackagesVersion>0.3.4-preview</BuildingBlockPackagesVersion>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageVersion Include="BusinessFramework.SourceGenerator" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="EdgeServicesBuildingBlock.Contract" Version="$(BuildingBlockPackagesVersion)" />
-    <PackageVersion Include="EdgeServicesBuildingBlock.Shared" Version="$(BuildingBlockPackagesVersion)" />
-  </ItemGroup>
-  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <!-- 📂 Application Layer                                -->
-  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <ItemGroup>
-    <PackageVersion Include="BusinessFramework.Application.Common" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="BusinessFramework.Application.Service" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="BusinessFramework.Domain.Core" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="BusinessFramework.Shared.Abstractions.Caching" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="BusinessFramework.Shared.Abstractions.Serializer" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="BusinessFramework.Shared.Extensions.Caching.InMemory" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="BusinessFramework.Shared.Extensions.Serializer.Microsoft" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="BusinessFramework.Shared.Utilities" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="prometheus-net" Version="8.2.1" />
-    <PackageVersion Include="Grpc.AspNetCore" Version="2.80.0" />
-    <PackageVersion Include="Grpc.Net.Client" Version="2.80.0" />
-  </ItemGroup>
-  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <!-- 📂 Domain Layer                                -->
-  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <ItemGroup>
-    <PackageVersion Include="BusinessFramework.Domain.Toolkits" Version="$(BusinessFrameworkPackagesVersion)" />
-  </ItemGroup>
-  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <!-- 📂 Infrastructure Layer                                -->
-  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <ItemGroup>
-    <PackageVersion Include="BusinessFramework.Infrastructure.Common" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="BusinessFramework.Infrastructure.SqlCommand" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="BusinessFramework.Infrastructure.SqlQuery" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
-    <PackageVersion Include="MassTransit.EntityFrameworkCore" Version="8.5.9" />
-    <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftRelatedPackagesVersion)" />
-    <PackageVersion Include="Npgsql" Version="10.0.2" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
-      <PackageVersion Include="AspNetCore.HealthChecks.UI.PostgreSQL.Storage" Version="9.0.0" />
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        <MicrosoftRelatedPackagesVersion>10.0.8</MicrosoftRelatedPackagesVersion>
+        <BusinessFrameworkPackagesVersion>0.3.20</BusinessFrameworkPackagesVersion>
+        <BuildingBlockPackagesVersion>0.3.4-preview</BuildingBlockPackagesVersion>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageVersion Include="BusinessFramework.SourceGenerator" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="EdgeServicesBuildingBlock.Contract" Version="$(BuildingBlockPackagesVersion)" />
+        <PackageVersion Include="EdgeServicesBuildingBlock.Shared" Version="$(BuildingBlockPackagesVersion)" />
+    </ItemGroup>
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <!-- 📂 Application Layer                                -->
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <ItemGroup>
+        <PackageVersion Include="BusinessFramework.Application.Common" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="BusinessFramework.Application.Service" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="BusinessFramework.Domain.Core" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="BusinessFramework.Shared.Abstractions.Caching" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="BusinessFramework.Shared.Abstractions.Serializer" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="BusinessFramework.Shared.Extensions.Caching.InMemory" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="BusinessFramework.Shared.Extensions.Serializer.Microsoft" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="BusinessFramework.Shared.Utilities" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="prometheus-net" Version="8.2.1" />
+        <PackageVersion Include="Grpc.AspNetCore" Version="2.80.0" />
+        <PackageVersion Include="Grpc.Net.Client" Version="2.80.0" />
+    </ItemGroup>
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <!-- 📂 Domain Layer                                -->
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <ItemGroup>
+        <PackageVersion Include="BusinessFramework.Domain.Toolkits" Version="$(BusinessFrameworkPackagesVersion)" />
+    </ItemGroup>
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <!-- 📂 Infrastructure Layer                                -->
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <ItemGroup>
+        <PackageVersion Include="BusinessFramework.Infrastructure.Common" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="BusinessFramework.Infrastructure.SqlCommand" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="BusinessFramework.Infrastructure.SqlQuery" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
+        <PackageVersion Include="MassTransit.EntityFrameworkCore" Version="8.5.9" />
+        <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftRelatedPackagesVersion)" />
+        <PackageVersion Include="Npgsql" Version="10.0.2" />
+        <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+        <PackageVersion Include="AspNetCore.HealthChecks.UI.PostgreSQL.Storage" Version="9.0.0" />
 
-  </ItemGroup>
-  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <!-- 📂 WebApi Layer                                -->
-  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <ItemGroup>
-    <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
-    <PackageVersion Include="BusinessFramework.Endpoint.WebApi" Version="$(BusinessFrameworkPackagesVersion)" />
-    <PackageVersion Include="MassTransit" Version="8.5.9" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.16" />
-  </ItemGroup>
-  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <!-- ⚠️  Unused Packages                             -->
-  <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
-  <ItemGroup>
-    <PackageVersion Include="Castle.Core" Version="5.2.1" />
-    <PackageVersion Include="Confluent.Kafka" Version="2.14.0" />
-    <PackageVersion Include="MassTransit.MongoDb" Version="8.5.9" />
-    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="$(MicrosoftRelatedPackagesVersion)" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftRelatedPackagesVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.16" />
-    <PackageVersion Include="Microsoft.Extensions.Identity.Stores" Version="$(MicrosoftRelatedPackagesVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(MicrosoftRelatedPackagesVersion)" />
-    <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.18.0" />
-    <PackageVersion Include="Minio" Version="6.0.5" />
-    <PackageVersion Include="MongoDB.Bson" Version="3.8.1" />
-    <PackageVersion Include="MongoDB.Driver" Version="3.8.1" />
-    <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageVersion Include="RabbitMQ.Client" Version="7.2.1" />
-    <PackageVersion Include="StyleCop.Analyzers" Version="1.1.118" />
-    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
-  </ItemGroup>
+        <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />
+
+    </ItemGroup>
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <!-- 📂 WebApi Layer                                -->
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <ItemGroup>
+        <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
+        <PackageVersion Include="BusinessFramework.Endpoint.WebApi" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="MassTransit" Version="8.5.9" />
+        <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.16" />
+    </ItemGroup>
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <!-- ⚠️  Unused Packages                             -->
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <ItemGroup>
+        <PackageVersion Include="Castle.Core" Version="5.2.1" />
+        <PackageVersion Include="Confluent.Kafka" Version="2.14.0" />
+        <PackageVersion Include="MassTransit.MongoDb" Version="8.5.9" />
+        <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="$(MicrosoftRelatedPackagesVersion)" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftRelatedPackagesVersion)" />
+        <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.16" />
+        <PackageVersion Include="Microsoft.Extensions.Identity.Stores" Version="$(MicrosoftRelatedPackagesVersion)" />
+        <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(MicrosoftRelatedPackagesVersion)" />
+        <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.18.0" />
+        <PackageVersion Include="Minio" Version="6.0.5" />
+        <PackageVersion Include="MongoDB.Bson" Version="3.8.1" />
+        <PackageVersion Include="MongoDB.Driver" Version="3.8.1" />
+        <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
+        <PackageVersion Include="RabbitMQ.Client" Version="7.2.1" />
+        <PackageVersion Include="StyleCop.Analyzers" Version="1.1.118" />
+        <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
+    </ItemGroup>
 </Project>

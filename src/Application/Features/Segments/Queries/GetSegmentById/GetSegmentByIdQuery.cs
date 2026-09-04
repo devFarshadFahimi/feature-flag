@@ -1,7 +1,4 @@
-using Application.Common.Interfaces;
-using Domain.Aggregates.Segments;
-using Domain.Exceptions;
-using Microsoft.EntityFrameworkCore;
+using Domain.Aggregates.SegmentAggregate;
 
 namespace Application.Features.Segments.Queries.GetSegmentById;
 
@@ -23,28 +20,28 @@ public record SegmentConstraintResponse(
     bool Inverted,
     bool CaseInsensitive);
 
-internal class GetSegmentByIdQueryHandler(IApplicationDbContext dbContext) 
+internal class GetSegmentByIdQueryHandler(IApplicationDbContext dbContext)
     : QueryRequestHandler<GetSegmentByIdQuery, SegmentResponse>
 {
     public override async Task<SegmentResponse> Handle(GetSegmentByIdQuery request, CancellationToken cancellationToken)
-{
-    var segment = await dbContext.Segments
-        .Include(s => s.Constraints)
-        .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken)
-        ?? throw new EntityNotFoundException(nameof(Segment), request.Id);
+    {
+        var segment = await dbContext.Segments
+            .Include(s => s.Constraints)
+            .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken)
+            ?? throw new InvalidEntityStateException(nameof(Segment), request.Id + string.Empty);
 
-    return new SegmentResponse(
-        segment.Id,
-        segment.Name,
-        segment.Description,
-        segment.IsPublic,
-        segment.CreatedAt,
-        segment.LastUsedAt,
-        segment.Constraints.Select(c => new SegmentConstraintResponse(
-            c.ContextName,
-            c.Operator.ToString(),
-            c.Values.ToList(),
-            c.Inverted,
-            c.CaseInsensitive)).ToList());
-}
+        return new SegmentResponse(
+            segment.Id,
+            segment.Name,
+            segment.Description,
+            segment.IsPublic,
+            segment.CreatedAt,
+            segment.LastUsedAt,
+            segment.Constraints.Select(c => new SegmentConstraintResponse(
+                c.ContextName,
+                c.Operator.ToString(),
+                c.Values.ToList(),
+                c.Inverted,
+                c.CaseInsensitive)).ToList());
+    }
 }

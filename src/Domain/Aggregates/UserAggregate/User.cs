@@ -3,7 +3,6 @@ using Domain.Enums;
 
 namespace Domain.Aggregates.UserAggregate;
 
-
 public sealed class User : AggregateRoot<Guid>
 {
     public string Email { get; private set; }
@@ -14,8 +13,12 @@ public sealed class User : AggregateRoot<Guid>
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastLoginAt { get; private set; }
 
+    private readonly List<RefreshToken> _refreshTokens = [];
+    public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
+
     private User(Guid id, string email, string passwordHash, UserRole role)
     {
+        Id = id;
         Email = email;
         PasswordHash = passwordHash;
         Role = role;
@@ -30,7 +33,7 @@ public sealed class User : AggregateRoot<Guid>
             Name = name
         };
 
-        user.Apply(new UserCreatedEvent(user.Id, email));
+        user.AddEvent(new UserCreatedEvent(user.Id, email));
         return user;
     }
 
@@ -82,7 +85,7 @@ public sealed class User : AggregateRoot<Guid>
     public void RevokeRefreshToken(string token)
     {
         var refreshToken = _refreshTokens.FirstOrDefault(rt => rt.Token == token)
-            ?? throw new DomainException("Refresh token not found");
+            ?? throw new InvalidEntityStateException("Refresh token not found");
 
         refreshToken.Revoke();
     }
@@ -93,48 +96,5 @@ public sealed class User : AggregateRoot<Guid>
         {
             token.Revoke();
         }
-    }
-}
-
-public sealed class RefreshToken : Entity<Guid>
-{
-    public Guid UserId { get; private set; }
-    public string Token { get; private set; }
-    public string JwtId { get; private set; }
-    public bool IsUsed { get; private set; }
-    public bool IsRevoked { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public DateTime ExpiresAt { get; private set; }
-
-    private RefreshToken() { }
-
-    public static RefreshToken Create(Guid userId, string token, string jwtId, TimeSpan expiration)
-    {
-        return new RefreshToken
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Token = token,
-            JwtId = jwtId,
-            IsUsed = false,
-            IsRevoked = false,
-            CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.Add(expiration)
-        };
-    }
-
-    public void MarkAsUsed()
-    {
-        IsUsed = true;
-    }
-
-    public void Revoke()
-    {
-        IsRevoked = true;
-    }
-
-    public bool IsValid()
-    {
-        return !IsUsed && !IsRevoked && DateTime.UtcNow < ExpiresAt;
     }
 }

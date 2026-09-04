@@ -3,13 +3,12 @@ using Application.Features.FeatureEnvironments.Commands.DisableFeatureEnvironmen
 using Application.Features.FeatureEnvironments.Commands.EnableFeatureEnvironment;
 using Application.Features.FeatureEnvironments.Commands.RemoveFeatureStrategy;
 using Application.Features.FeatureEnvironments.Queries.GetFeatureEnvironmentById;
-using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
 
 [Authorize]
-[Route("api/features/{featureId:guid}/environments")]
-public class FeatureEnvironmentsController(IMediator mediator) : BusinessApiControllerBase(mediator)
+[Route("api/v{version:apiVersion}/features/{featureId:guid}/environments")]
+public class FeatureEnvironmentsController(IMediator mediator) : ApiControllerBase(mediator)
 {
     [HttpGet("{environmentId:guid}")]
     public async Task<IActionResult> GetById(Guid featureId, Guid environmentId, CancellationToken cancellationToken)
@@ -32,9 +31,9 @@ public class FeatureEnvironmentsController(IMediator mediator) : BusinessApiCont
     [HttpPost("{environmentId:guid}/strategies")]
     public async Task<IActionResult> AddStrategy(Guid featureId, Guid environmentId, [FromBody] AddFeatureStrategyCommand command, CancellationToken cancellationToken)
     {
-        if (featureId != command.FeatureId || environmentId != command.EnvironmentId)
-            return BadRequest(new { Message = "Feature or environment id mismatch" });
-        return await SendAsync(command, cancellationToken);
+        return featureId != command.FeatureId || environmentId != command.EnvironmentId
+            ? BadRequest(new { Message = "Feature or environment id mismatch" })
+            : await SendAsync(command, cancellationToken);
     }
 
     [HttpDelete("{environmentId:guid}/strategies/{strategyId:guid}")]

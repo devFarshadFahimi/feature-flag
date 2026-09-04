@@ -1,3 +1,5 @@
+using System.Security.Claims;
+
 namespace Application.Common.Interfaces;
 
 public interface IPasswordHasher
@@ -10,6 +12,7 @@ public interface IJwtTokenGenerator
 {
     string GenerateAccessToken(User user);
     string GenerateRefreshToken();
+    ClaimsPrincipal? ValidateToken(string accessToken);
 }
 
 public interface IRefreshTokenGenerator

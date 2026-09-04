@@ -1,9 +1,3 @@
-using Application.Common.Interfaces;
-using Application.Common.Models;
-using Domain.Aggregates.Users;
-using Domain.Exceptions;
-using Microsoft.EntityFrameworkCore;
-
 namespace Application.Features.Auth.Commands.Login;
 
 public record LoginCommand(string Email, string Password) : ICommandRequest<LoginResponse>;
@@ -29,34 +23,38 @@ internal class LoginCommandHandler(
     : CommandRequestHandler<LoginCommand, LoginResponse>
 {
     public override async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
-{
-    var user = await dbContext.Users
-        .FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken)
-        ?? throw new DomainException("Invalid email or password");
+    {
+        var user = await dbContext.Users
+            .FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken)
+            ?? throw new InvalidEntityStateException("Invalid email or password");
 
-    if (!user.IsActive)
-        throw new DomainException("User account is deactivated");
+        if (!user.IsActive)
+        {
+            throw new InvalidEntityStateException("User account is deactivated");
+        }
 
-    if (!passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
-        throw new DomainException("Invalid email or password");
+        if (!passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
+        {
+            throw new InvalidEntityStateException("Invalid email or password");
+        }
 
-    var accessToken = jwtTokenGenerator.GenerateAccessToken(user);
-    var refreshTokenValue = jwtTokenGenerator.GenerateRefreshToken();
+        var accessToken = jwtTokenGenerator.GenerateAccessToken(user);
+        var refreshTokenValue = jwtTokenGenerator.GenerateRefreshToken();
 
-    var settings = jwtSettings.Value;
-    var refreshToken = user.AddRefreshToken(
-        refreshTokenValue,
-        Guid.NewGuid().ToString(),
-        TimeSpan.FromDays(settings.RefreshTokenExpirationDays));
+        var settings = jwtSettings.Value;
+        var refreshToken = user.AddRefreshToken(
+            refreshTokenValue,
+            Guid.NewGuid().ToString(),
+            TimeSpan.FromDays(settings.RefreshTokenExpirationDays));
 
-    user.RecordLogin();
-    await dbContext.SaveChangeAsync(cancellationToken);
+        user.RecordLogin();
+        await dbContext.SaveChangeAsync(cancellationToken);
 
-    return Ok(new LoginResponse(
-        accessToken,
-        refreshToken.Token,
-        DateTime.UtcNow.AddMinutes(settings.AccessTokenExpirationMinutes),
-        refreshToken.ExpiresAt,
-        new UserResponse(user.Id, user.Email, user.Name, user.Role.ToString())));
-}
+        return Ok(new LoginResponse(
+            accessToken,
+            refreshToken.Token,
+            DateTime.UtcNow.AddMinutes(settings.AccessTokenExpirationMinutes),
+            refreshToken.ExpiresAt,
+            new UserResponse(user.Id, user.Email, user.Name, user.Role.ToString())));
+    }
 }

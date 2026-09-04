@@ -32,6 +32,10 @@ public class SegmentConfiguration : ApplicationConfiguration<Segment>
         _ = builder.HasIndex(s => s.IsPublic);
 
         // Constraints handled via separate table
-        _ = builder.Ignore(s => s.Constraints);
+        _ = builder.HasMany(s => s.Constraints)
+            .WithOne()
+            .HasForeignKey("SegmentId")
+            .OnDelete(DeleteBehavior.Cascade)
+            ;
     }
 }

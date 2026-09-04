@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApi.Controllers;
 
 [Authorize]
-public class UsersController(IMediator mediator) : BusinessApiControllerBase(mediator)
+public class UsersController(IMediator mediator) : ApiControllerBase(mediator)
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateUserCommand command, CancellationToken cancellationToken)
@@ -34,7 +34,10 @@ public class UsersController(IMediator mediator) : BusinessApiControllerBase(med
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserCommand command, CancellationToken cancellationToken)
     {
         if (id != command.Id)
+        {
             return BadRequest(new { Message = "Id mismatch" });
+        }
+
         return await SendAsync(command, cancellationToken);
     }
 
@@ -54,7 +57,10 @@ public class UsersController(IMediator mediator) : BusinessApiControllerBase(med
     public async Task<IActionResult> Promote(Guid id, [FromBody] PromoteUserCommand command, CancellationToken cancellationToken)
     {
         if (id != command.Id)
+        {
             return BadRequest(new { Message = "Id mismatch" });
+        }
+
         return await SendAsync(command, cancellationToken);
     }
 }

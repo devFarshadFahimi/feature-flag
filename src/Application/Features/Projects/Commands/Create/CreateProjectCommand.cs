@@ -3,7 +3,7 @@
 
 public record CreateProjectCommand(string Name, string Description, string DefaultStickiness = "default") : ICommandRequest<Guid>;
 
-internal class CreateProjectCommandHandler(IApplicationDbContext dbContext) 
+internal class CreateProjectCommandHandler(IApplicationDbContext dbContext)
     : CommandRequestHandler<CreateProjectCommand, Guid>
 {
     public override async Task<Result<Guid>> Handle(CreateProjectCommand request, CancellationToken cancellationToken)

@@ -1,17 +1,17 @@
 ﻿using BusinessMakerFramework.Endpoint.WebApi.ApiDescriptorSetup;
+using Infrastructure;
 
 namespace WebApi.ProgramConfiguration;
 
 public static class ApplicationBuilder
 {
-    public static void UseWebApiConfiguration(this WebApplication app)
+    public static async Task UseWebApiConfiguration(this WebApplication app)
     {
         // Seed database
         await app.Services.SeedDatabaseAsync();
 
         app.UseFrameworkExceptionHandler();
         app.MapOpenApiAndScalar();
-        app.UseFrameworkSerilogRequestLogging();
 
         _ = app.UseHttpsRedirection();
         _ = app.UseCors(p =>

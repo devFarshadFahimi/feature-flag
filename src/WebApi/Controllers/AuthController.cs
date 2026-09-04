@@ -1,15 +1,12 @@
+using System.Security.Claims;
 using Application.Features.Auth.Commands.Login;
 using Application.Features.Auth.Commands.Logout;
 using Application.Features.Auth.Commands.RefreshToken;
 using Application.Features.Auth.Queries.GetCurrentUser;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace WebApi.Controllers;
 
-[Route("api/auth")]
-public class AuthController(IMediator mediator) : BusinessApiControllerBase(mediator)
+public class AuthController(IMediator mediator) : ApiControllerBase(mediator)
 {
     [HttpPost("login")]
     [AllowAnonymous]

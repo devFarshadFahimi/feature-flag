@@ -1,4 +1,5 @@
-﻿using Domain.Aggregates.FeatureAggregate;
+﻿using Domain.Aggregates.ChangeRequestAggregate;
+using Domain.Aggregates.FeatureAggregate;
 using Domain.Aggregates.FeatureAggregate.Events;
 using Domain.Aggregates.ProjectAggregate.Events;
 
@@ -12,11 +13,10 @@ public sealed class Project : AggregateRoot<Guid>
     public bool FeatureLimitEnabled { get; private set; }
     public int? FeatureLimit { get; private set; }
 
-    private readonly List<Feature> _features = [];
-    public IReadOnlyCollection<Feature> Features => _features.AsReadOnly();
+    public ICollection<ChangeRequest> ChangeRequests { get; private set; } = [];
+    public ICollection<Feature> Features { get; private set; } = [];
 
-    private readonly List<ProjectMember> _members = [];
-    public IReadOnlyCollection<ProjectMember> Members => _members.AsReadOnly();
+    public ICollection<ProjectMember> Members { get; private set; } = [];
 
     private Project(Guid id, string name, string description, string defaultStickiness)
     {
@@ -29,7 +29,7 @@ public sealed class Project : AggregateRoot<Guid>
     public static Project Create(string name, string description, string defaultStickiness = "default")
     {
         var project = new Project(Guid.NewGuid(), name, description, defaultStickiness);
-        project.Apply(new ProjectCreatedEvent(project.Id, name));
+        project.AddEvent(new ProjectCreatedEvent(project.Id, name));
         return project;
     }
 
@@ -37,51 +37,51 @@ public sealed class Project : AggregateRoot<Guid>
     {
         Name = name;
         Description = description;
-        Apply(new ProjectUpdatedEvent(Id, name));
+        AddEvent(new ProjectUpdatedEvent(Id, name));
     }
 
     public Feature AddFeature(string featureName, FeatureType type, string? description = null)
     {
-        if (FeatureLimitEnabled && FeatureLimit.HasValue && _features.Count >= FeatureLimit.Value)
+        if (FeatureLimitEnabled && FeatureLimit.HasValue && Features.Count >= FeatureLimit.Value)
         {
             throw new InvalidEntityStateException($"Project has reached feature limit of {FeatureLimit}");
         }
 
-        if (_features.Any(f => f.Name == featureName))
+        if (Features.Any(f => f.Name == featureName))
         {
             throw new InvalidEntityStateException($"Feature '{featureName}' already exists in project");
         }
 
         var feature = Feature.Create(Id, featureName, type, description);
-        _features.Add(feature);
+        Features.Add(feature);
         return feature;
     }
 
     public void RemoveFeature(Guid featureId)
     {
-        var feature = _features.FirstOrDefault(f => f.Id == featureId)
+        var feature = Features.FirstOrDefault(f => f.Id == featureId)
             ?? throw new InvalidEntityStateException($"Feature {featureId} not found");
 
         feature.Archive();
-        Apply(new FeatureArchivedEvent(featureId, Id));
+        AddEvent(new FeatureArchivedEvent(featureId, Id));
     }
 
     public void AddMember(Guid userId, ProjectRole role)
     {
-        if (_members.Any(m => m.UserId == userId))
+        if (Members.Any(m => m.UserId == userId))
         {
             throw new InvalidEntityStateException($"User {userId} is already a member");
         }
 
-        _members.Add(new ProjectMember(userId, role));
+        Members.Add(new ProjectMember(userId, role));
     }
 
     public void RemoveMember(Guid userId)
     {
-        var member = _members.FirstOrDefault(m => m.UserId == userId)
+        var member = Members.FirstOrDefault(m => m.UserId == userId)
             ?? throw new InvalidEntityStateException($"User {userId} is not a member");
 
-        _ = _members.Remove(member);
+        _ = Members.Remove(member);
     }
 
     public void SetFeatureLimit(int? limit)

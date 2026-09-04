@@ -1,10 +1,3 @@
-using Application.Common.Interfaces;
-using Domain.Aggregates.Features;
-using Domain.Exceptions;
-using Domain.Enums;
-using Mapster;
-using Microsoft.EntityFrameworkCore;
-
 namespace Application.Features.Features.Queries.GetFeatureById;
 
 public record GetFeatureByIdQuery(Guid Id) : IQueryRequest<FeatureResponse>;
@@ -45,54 +38,22 @@ public record ConstraintResponse(
     bool Inverted,
     bool CaseInsensitive);
 
-internal class GetFeatureByIdQueryHandler(IApplicationDbContext dbContext) 
+internal class GetFeatureByIdQueryHandler(IApplicationDbContext dbContext)
     : QueryRequestHandler<GetFeatureByIdQuery, FeatureResponse>
 {
     public override async Task<FeatureResponse> Handle(GetFeatureByIdQuery request, CancellationToken cancellationToken)
-{
-    var feature = await dbContext.Features
-        .Include(f => f.Environments)
-            .ThenInclude(e => e.Strategies)
-                .ThenInclude(s => s.Constraints)
-        .FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken)
-        ?? throw new EntityNotFoundException(nameof(Feature), request.Id);
+    {
+        var feature = await dbContext.Features
+            .Where(f => f.Id == request.Id)
+            .Include(f => f.Environments)
+                .ThenInclude(e => e.Strategies)
+                    .ThenInclude(s => s.Constraints)
 
-    return new FeatureResponse(
-        feature.Id,
-        feature.ProjectId,
-        feature.Name,
-        feature.Type.ToString(),
-        feature.Description,
-        feature.Lifecycle.ToString(),
-        feature.IsStale,
-        feature.ImpressionDataEnabled,
-        feature.CreatedAt,
-        feature.ArchivedAt,
-        feature.Tags.ToList(),
-        feature.Environments.Select(e => new FeatureEnvironmentResponse(
-            e.Id,
-            e.EnvironmentId,
-            e.Enabled,
-            e.LastSeenAt,
-            e.Strategies.Select(s => new FeatureStrategyResponse(
-                s.Id,
-                s.Type.ToString(),
-                s.SortOrder,
-                new Dictionary<string, object>
-                {
-                    ["rolloutPercentage"] = s.Parameters.RolloutPercentage ?? 0,
-                    ["stickiness"] = s.Parameters.Stickiness ?? "default",
-                    ["groupId"] = s.Parameters.GroupId ?? "",
-                    ["userIds"] = s.Parameters.UserIds,
-                    ["ipAddresses"] = s.Parameters.IpAddresses,
-                    ["applicationNames"] = s.Parameters.ApplicationNames
-                },
-                s.Constraints.Select(c => new ConstraintResponse(
-                    c.ContextName,
-                    c.Operator.ToString(),
-                    c.Values.ToList(),
-                    c.Inverted,
-                    c.CaseInsensitive)).ToList(),
-                s.SegmentIds.ToList())).ToList())).ToList());
-}
+            .AsSplitQuery()
+            .ProjectToType<FeatureResponse>()
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidEntityStateException(nameof(Feature), request.Id + string.Empty);
+
+        return feature;
+    }
 }

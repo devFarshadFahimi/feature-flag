@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApi.Controllers;
 
 [Authorize]
-public class SegmentsController(IMediator mediator) : BusinessApiControllerBase(mediator)
+public class SegmentsController(IMediator mediator) : ApiControllerBase(mediator)
 {
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateSegmentCommand command, CancellationToken cancellationToken)
@@ -34,7 +34,10 @@ public class SegmentsController(IMediator mediator) : BusinessApiControllerBase(
     public async Task<IActionResult> Update(int id, [FromBody] UpdateSegmentCommand command, CancellationToken cancellationToken)
     {
         if (id != command.Id)
+        {
             return BadRequest(new { Message = "Id mismatch" });
+        }
+
         return await SendAsync(command, cancellationToken);
     }
 
@@ -48,7 +51,10 @@ public class SegmentsController(IMediator mediator) : BusinessApiControllerBase(
     public async Task<IActionResult> AddConstraint(int id, [FromBody] AddSegmentConstraintCommand command, CancellationToken cancellationToken)
     {
         if (id != command.SegmentId)
+        {
             return BadRequest(new { Message = "Segment id mismatch" });
+        }
+
         return await SendAsync(command, cancellationToken);
     }
 
