@@ -17,6 +17,7 @@
         <PackageReference Include="BusinessFramework.Application.Service" />
         <PackageReference Include="BusinessFramework.Domain.Core" />
         <PackageReference Include="BusinessFramework.Shared.Abstractions.Caching" />
+        <PackageReference Include="BusinessFramework.Shared.Abstractions.UserManagement" />
         <PackageReference Include="BusinessFramework.Shared.Abstractions.Serializer" />
         <PackageReference Include="BusinessFramework.Shared.Extensions.Caching.InMemory" />
         <PackageReference Include="BusinessFramework.Shared.Extensions.Serializer.Microsoft" />

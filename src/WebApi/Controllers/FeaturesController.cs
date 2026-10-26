@@ -14,6 +14,21 @@ namespace WebApi.Controllers;
 [Authorize]
 public class FeaturesController(IMediator mediator) : ApiControllerBase(mediator)
 {
+    [HttpPut("{id:guid}/prerequisites")]
+    public async Task<IActionResult> Prerequisites(Guid id, [FromBody] Application.Features.FeatureEnvironments.SetPrerequisitesCommand command, CancellationToken cancellationToken)
+    {
+        if (id != command.FeatureId)
+        {
+            return BadRequest(new
+            {
+                Message = "شناسه پرچم یکسان نیست."
+            });
+        }
+
+
+        return await SendAsync(command, cancellationToken);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateFeatureCommand command, CancellationToken cancellationToken)
     {
@@ -37,8 +52,12 @@ public class FeaturesController(IMediator mediator) : ApiControllerBase(mediator
     {
         if (id != command.Id)
         {
-            return BadRequest(new { Message = "Id mismatch" });
+            return BadRequest(new
+            {
+                Message = "شناسه مسیر و درخواست یکسان نیست."
+            });
         }
+
 
         return await SendAsync(command, cancellationToken);
     }
@@ -54,8 +73,12 @@ public class FeaturesController(IMediator mediator) : ApiControllerBase(mediator
     {
         if (id != command.Id)
         {
-            return BadRequest(new { Message = "Id mismatch" });
+            return BadRequest(new
+            {
+                Message = "شناسه مسیر و درخواست یکسان نیست."
+            });
         }
+
 
         return await SendAsync(command, cancellationToken);
     }
@@ -65,8 +88,12 @@ public class FeaturesController(IMediator mediator) : ApiControllerBase(mediator
     {
         if (id != command.Id)
         {
-            return BadRequest(new { Message = "Id mismatch" });
+            return BadRequest(new
+            {
+                Message = "شناسه مسیر و درخواست یکسان نیست."
+            });
         }
+
 
         return await SendAsync(command, cancellationToken);
     }
@@ -76,8 +103,12 @@ public class FeaturesController(IMediator mediator) : ApiControllerBase(mediator
     {
         if (id != command.FeatureId)
         {
-            return BadRequest(new { Message = "Feature id mismatch" });
+            return BadRequest(new
+            {
+                Message = "شناسه پرچم مسیر و درخواست یکسان نیست."
+            });
         }
+
 
         return await SendAsync(command, cancellationToken);
     }

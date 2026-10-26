@@ -1,4 +1,4 @@
-﻿using Application.Features.Projects.Queries.GetProjectById;
+using Application.Features.Projects.Queries.GetProjectById;
 
 namespace Application.Common.Mappers;
 
@@ -10,9 +10,7 @@ public static class ProjectMappingConfig
         _ = TypeAdapterConfig<ProjectMember, ProjectMemberResponse>
             .NewConfig()
             .Map(dest => dest.Role, src => src.Role.ToString());
-
         // Project → ProjectResponse
-        _ = TypeAdapterConfig<Project, ProjectResponse>
-            .NewConfig();
+        _ = TypeAdapterConfig<Project, ProjectResponse>.NewConfig();
     }
 }

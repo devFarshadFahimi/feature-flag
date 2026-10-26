@@ -10,6 +10,36 @@ namespace WebApi.Controllers;
 [Route("api/v{version:apiVersion}/features/{featureId:guid}/environments")]
 public class FeatureEnvironmentsController(IMediator mediator) : ApiControllerBase(mediator)
 {
+    [HttpPut("{environmentId:guid}/strategies")]
+    public async Task<IActionResult> Configure(Guid featureId, Guid environmentId, [FromBody] Application.Features.FeatureEnvironments.ConfigureStrategyCommand command, CancellationToken cancellationToken)
+    {
+        if (featureId != command.FeatureId || environmentId != command.EnvironmentId)
+        {
+            return BadRequest(new
+            {
+                Message = "شناسه پرچم یا محیط یکسان نیست."
+            });
+        }
+
+
+        return await SendAsync(command, cancellationToken);
+    }
+
+    [HttpPut("{environmentId:guid}/strategy-order")]
+    public async Task<IActionResult> Reorder(Guid featureId, Guid environmentId, [FromBody] Application.Features.FeatureEnvironments.ReorderStrategiesCommand command, CancellationToken cancellationToken)
+    {
+        if (featureId != command.FeatureId || environmentId != command.EnvironmentId)
+        {
+            return BadRequest(new
+            {
+                Message = "شناسه پرچم یا محیط یکسان نیست."
+            });
+        }
+
+
+        return await SendAsync(command, cancellationToken);
+    }
+
     [HttpGet("{environmentId:guid}")]
     public async Task<IActionResult> GetById(Guid featureId, Guid environmentId, CancellationToken cancellationToken)
     {
@@ -31,9 +61,10 @@ public class FeatureEnvironmentsController(IMediator mediator) : ApiControllerBa
     [HttpPost("{environmentId:guid}/strategies")]
     public async Task<IActionResult> AddStrategy(Guid featureId, Guid environmentId, [FromBody] AddFeatureStrategyCommand command, CancellationToken cancellationToken)
     {
-        return featureId != command.FeatureId || environmentId != command.EnvironmentId
-            ? BadRequest(new { Message = "Feature or environment id mismatch" })
-            : await SendAsync(command, cancellationToken);
+        return featureId != command.FeatureId || environmentId != command.EnvironmentId ? BadRequest(new
+        {
+            Message = "شناسه پرچم یا محیط مسیر و درخواست یکسان نیست."
+        }) : await SendAsync(command, cancellationToken);
     }
 
     [HttpDelete("{environmentId:guid}/strategies/{strategyId:guid}")]

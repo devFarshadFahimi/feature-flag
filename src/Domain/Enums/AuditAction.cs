@@ -1,6 +1,4 @@
-﻿
 // Domain/Enums/AuditAction.cs
-
 public enum AuditAction
 {
     Created = 0,

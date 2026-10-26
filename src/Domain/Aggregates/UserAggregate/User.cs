@@ -1,17 +1,39 @@
-﻿using Domain.Aggregates.UserAggregate.Events;
+using Domain.Aggregates.UserAggregate.Events;
 using Domain.Enums;
 
 namespace Domain.Aggregates.UserAggregate;
 
 public sealed class User : AggregateRoot<Guid>
 {
-    public string Email { get; private set; }
-    public string? Name { get; private set; }
-    public string PasswordHash { get; private set; }
-    public UserRole Role { get; private set; }
-    public bool IsActive { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public DateTime? LastLoginAt { get; private set; }
+    public string Email
+    {
+        get; private set;
+    }
+    public string? Name
+    {
+        get; private set;
+    }
+    public string PasswordHash
+    {
+        get; private set;
+    }
+    public UserRole Role
+    {
+        get; private set;
+    }
+    public bool IsActive
+    {
+        get; private set;
+    }
+    public Guid SecurityVersion { get; private set; } = Guid.NewGuid();
+    public DateTime CreatedAt
+    {
+        get; private set;
+    }
+    public DateTime? LastLoginAt
+    {
+        get; private set;
+    }
 
     private readonly List<RefreshToken> _refreshTokens = [];
     public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
@@ -34,6 +56,7 @@ public sealed class User : AggregateRoot<Guid>
         };
 
         user.AddEvent(new UserCreatedEvent(user.Id, email));
+
         return user;
     }
 
@@ -53,16 +76,19 @@ public sealed class User : AggregateRoot<Guid>
     public void UpdatePassword(string newPasswordHash)
     {
         PasswordHash = newPasswordHash;
+        RevokeAllRefreshTokens();
     }
 
     public void PromoteTo(UserRole role)
     {
         Role = role;
+        RevokeAllRefreshTokens();
     }
 
     public void Deactivate()
     {
         IsActive = false;
+        RevokeAllRefreshTokens();
     }
 
     public void Activate()
@@ -78,20 +104,22 @@ public sealed class User : AggregateRoot<Guid>
     public RefreshToken AddRefreshToken(string token, string jwtId, TimeSpan expiration)
     {
         var refreshToken = RefreshToken.Create(Id, token, jwtId, expiration);
+
         _refreshTokens.Add(refreshToken);
+
         return refreshToken;
     }
 
     public void RevokeRefreshToken(string token)
     {
-        var refreshToken = _refreshTokens.FirstOrDefault(rt => rt.Token == token)
-            ?? throw new InvalidEntityStateException("Refresh token not found");
+        var refreshToken = _refreshTokens.FirstOrDefault(rt => rt.Token == token) ?? throw new InvalidEntityStateException("توکن تمدید یافت نشد.");
 
         refreshToken.Revoke();
     }
 
     public void RevokeAllRefreshTokens()
     {
+        SecurityVersion = Guid.NewGuid();
         foreach (var token in _refreshTokens.Where(rt => !rt.IsRevoked))
         {
             token.Revoke();

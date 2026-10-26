@@ -13,7 +13,6 @@ namespace Infrastructure.Services;
 public class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly JwtSettings _jwtSettings;
-
     public JwtTokenGenerator(IOptions<JwtSettings> jwtSettings)
     {
         _jwtSettings = jwtSettings.Value;
@@ -25,20 +24,16 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid
+            .NewGuid()
+            .ToString()),
+            new Claim("security_version", user.SecurityVersion.ToString()),
             new Claim(ClaimTypes.Name, user.Name ?? user.Email),
             new Claim(ClaimTypes.Role, user.Role.ToString())
         };
-
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            issuer: _jwtSettings.Issuer,
-            audience: _jwtSettings.Audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
-            signingCredentials: credentials);
+        var token = new JwtSecurityToken(issuer: _jwtSettings.Issuer, audience: _jwtSettings.Audience, claims: claims, expires: DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes), signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
@@ -47,7 +42,9 @@ public class JwtTokenGenerator : IJwtTokenGenerator
     {
         var randomNumber = new byte[64];
         using var rng = RandomNumberGenerator.Create();
+
         rng.GetBytes(randomNumber);
+
         return Convert.ToBase64String(randomNumber);
     }
 
@@ -67,6 +64,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
                 ValidateAudience = true,
                 ValidAudience = _jwtSettings.Audience,
                 ValidateLifetime = false, // Allow expired tokens for refresh
+                ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
                 ClockSkew = TimeSpan.Zero
             }, out _);
 

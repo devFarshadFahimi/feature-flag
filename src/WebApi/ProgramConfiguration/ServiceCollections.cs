@@ -1,4 +1,4 @@
-﻿using Application;
+using Application;
 using BusinessMakerFramework.Endpoint.WebApi.ApiDescriptorSetup;
 using BusinessMakerFramework.Endpoint.WebApi.HateoasSetup;
 using BusinessMakerFramework.Endpoint.WebApi.ScalarSetup.Transformers;
@@ -15,34 +15,36 @@ public static class ServiceCollections
     {
         builder.Services.AddHateoasGeneratorService();
         _ = SetupOpenApi(builder);
-
         _ = builder.Services.AddHealthChecks();
-
-        builder.Services.AddDomainExceptionHandler();
-
+        builder.Services.AddExceptionHandler<WebApi.Handlers.ApiProblemHandler>();
+        builder.Services.AddProblemDetails();
         builder.Services.AddFrameworkExceptionHandler();
         _ = builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-        _ = builder.Services.AddControllers();
+        _ = builder.Services
+            .AddControllers(options => options.Filters.Add<WebApi.Authorization.ProjectAccess>())
+            .ConfigureApiBehaviorOptions(options => options.InvalidModelStateResponseFactory = context => new BadRequestObjectResult(new ProblemDetails
+            {
+                Status = 400,
+                Title = "اطلاعات درخواست معتبر نیست.",
+                Extensions = { ["fields"] = context.ModelState
+            .Where(p => p.Value?.Errors.Count > 0)
+            .Select(p => p.Key)
+            .ToArray() }
+            }));
         _ = builder.Services.AddFrameworkApiVersioning();
         _ = builder.Services.AddInfrastructureServices(builder.Configuration);
         _ = builder.Services.AddApplicationServices();
         _ = builder.Services
             .AddHttpClient()
             .AddHttpContextAccessor();
-
-
         //_ = builder.Services.AddFrameworkHealthCheck()
         //    //.AddDbContextCheck<ApplicationDbContext>()
         //    .AddRedis(builder.Configuration.GetValue<string>("Redis:ConnectionString")!);
-
         //_ = builder.Services
         //    .AddFrameworkHealthCheckUI(
         //        builder.Configuration.GetValue<string>("ServiceRegistration:ServiceHealthCheckEndpoint")!)
         //    .AddPostgreSqlStorage(builder.Configuration.GetConnectionString("HealthCheckConnection")!);
-
-        builder.AddAspireOrchestrationStandaloneOtelMonitoring("payment", true,
-           meter => meter.AddMeter("MyCompany.MyProduct.MyLibrary"),
-           trace => trace.AddSource("MyCompany.MyService"));
+        builder.AddAspireOrchestrationStandaloneOtelMonitoring("payment", true, meter => meter.AddMeter("MyCompany.MyProduct.MyLibrary"), trace => trace.AddSource("MyCompany.MyService"));
         //.SetResourceBuilder(
         //    ResourceBuilder.CreateDefault()
         //        .AddService("MyService")
@@ -51,41 +53,38 @@ public static class ServiceCollections
         //            ["deployment.environment"] = builder.Environment.EnvironmentName
         //        })
         //)
-
-
-        // Add layers
-        _ = builder.Services.AddApplicationServices();
-        _ = builder.Services.AddInfrastructureServices(builder.Configuration);
         _ = builder.Services.AddJwtAuthentication(builder.Configuration);
+
         return builder;
     }
-
 
     private static WebApplicationBuilder SetupOpenApi(WebApplicationBuilder builder)
     {
         _ = builder.Services.AddApiDescriptor();
+
         List<OpenApiInfoOptions> newOpenApiInfoOptions = builder.GetOpenApiInfoOptions();
 
         foreach (var description in newOpenApiInfoOptions)
         {
-            builder.AddOpenApiDocument(
-                description.OpenApiInfo?.Title ?? "Invalid Service Title",
-                description.OpenApiInfo?.Description ?? "Invalid Service Description",
-                version: description.Version ?? "v1",
-                action: p =>
-                {
-                    _ = p.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
-                    _ = p.AddOperationTransformer<ActionSummaryNamingTransformer>();
-                });
+            builder.AddOpenApiDocument(description.OpenApiInfo?.Title ?? "Invalid Service Title", description.OpenApiInfo?.Description ?? "Invalid Service Description", version: description.Version ?? "v1", action: p =>
+            {
+                _ = p.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+                _ = p.AddOperationTransformer<ActionSummaryNamingTransformer>();
+            });
         }
+
+
         return builder;
     }
 
     private static List<OpenApiInfoOptions> GetOpenApiInfoOptions(this WebApplicationBuilder builder)
     {
         var newOpenApiInfoOptions = new List<OpenApiInfoOptions>();
-        builder.Configuration.GetSection("OpenApiInfoOptions").Bind(newOpenApiInfoOptions);
+
+        builder.Configuration
+            .GetSection("OpenApiInfoOptions")
+            .Bind(newOpenApiInfoOptions);
+
         return newOpenApiInfoOptions;
     }
-
 }

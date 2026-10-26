@@ -1,4 +1,4 @@
-﻿global using Application.Common.Interfaces;
+global using Application.Common.Interfaces;
 global using Application.Common.Services;
 global using Application.Common.Settings;
 global using Application.Features.Environments.Queries.GetEnvironmentById;

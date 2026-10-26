@@ -35,8 +35,12 @@ public class UsersController(IMediator mediator) : ApiControllerBase(mediator)
     {
         if (id != command.Id)
         {
-            return BadRequest(new { Message = "Id mismatch" });
+            return BadRequest(new
+            {
+                Message = "شناسه مسیر و درخواست یکسان نیست."
+            });
         }
+
 
         return await SendAsync(command, cancellationToken);
     }
@@ -58,8 +62,12 @@ public class UsersController(IMediator mediator) : ApiControllerBase(mediator)
     {
         if (id != command.Id)
         {
-            return BadRequest(new { Message = "Id mismatch" });
+            return BadRequest(new
+            {
+                Message = "شناسه مسیر و درخواست یکسان نیست."
+            });
         }
+
 
         return await SendAsync(command, cancellationToken);
     }

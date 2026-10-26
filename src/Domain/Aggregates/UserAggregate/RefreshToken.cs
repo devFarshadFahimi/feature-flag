@@ -1,14 +1,35 @@
-﻿namespace Domain.Aggregates.UserAggregate;
+namespace Domain.Aggregates.UserAggregate;
 
 public sealed class RefreshToken : Entity<int>
 {
-    public Guid UserId { get; private set; }
-    public string Token { get; private set; }
-    public string JwtId { get; private set; }
-    public bool IsUsed { get; private set; }
-    public bool IsRevoked { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public DateTime ExpiresAt { get; private set; }
+    public Guid UserId
+    {
+        get; private set;
+    }
+    public string Token
+    {
+        get; private set;
+    }
+    public string JwtId
+    {
+        get; private set;
+    }
+    public bool IsUsed
+    {
+        get; private set;
+    }
+    public bool IsRevoked
+    {
+        get; private set;
+    }
+    public DateTime CreatedAt
+    {
+        get; private set;
+    }
+    public DateTime ExpiresAt
+    {
+        get; private set;
+    }
 
     private RefreshToken()
     {

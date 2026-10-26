@@ -1,9 +1,7 @@
 namespace Application.Features.ApiTokens.Queries.GetAllApiTokens;
 
 public record GetAllApiTokensQuery(Guid? EnvironmentId = null) : IQueryRequest<List<ApiTokenResponse>>;
-
-internal class GetAllApiTokensQueryHandler(IApplicationDbContext dbContext)
-    : QueryRequestHandler<GetAllApiTokensQuery, List<ApiTokenResponse>>
+internal class GetAllApiTokensQueryHandler(IApplicationDbContext dbContext) : QueryRequestHandler<GetAllApiTokensQuery, List<ApiTokenResponse>>
 {
     public override async Task<List<ApiTokenResponse>> Handle(GetAllApiTokensQuery request, CancellationToken cancellationToken)
     {
@@ -13,6 +11,7 @@ internal class GetAllApiTokensQueryHandler(IApplicationDbContext dbContext)
         {
             query = query.Where(t => t.EnvironmentId == request.EnvironmentId.Value);
         }
+
 
         return await query
             .ProjectToType<ApiTokenResponse>()

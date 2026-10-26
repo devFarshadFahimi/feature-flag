@@ -1,4 +1,4 @@
-﻿using Application.Features.Segments.Queries.GetSegmentById;
+using Application.Features.Segments.Queries.GetSegmentById;
 using Domain.Aggregates.SegmentAggregate;
 using Domain.ValueObjects;
 
@@ -13,7 +13,6 @@ public static class SegmentMappingConfig
             .NewConfig()
             .Map(dest => dest.Operator, src => src.Operator.ToString())
             .Map(dest => dest.Values, src => src.Values.ToList());
-
         // Segment → SegmentResponse
         _ = TypeAdapterConfig<Segment, SegmentResponse>
             .NewConfig()

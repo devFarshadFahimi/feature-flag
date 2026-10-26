@@ -1,4 +1,3 @@
-﻿
 // Domain/Enums/StrategyType.cs
 public enum StrategyType
 {

@@ -1,4 +1,3 @@
-﻿
 // Domain/Enums/FeatureLifecycle.cs
 public enum FeatureLifecycle
 {

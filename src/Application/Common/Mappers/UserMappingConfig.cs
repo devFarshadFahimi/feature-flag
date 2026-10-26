@@ -1,4 +1,4 @@
-﻿using Application.Features.Auth.Commands.Login;
+using Application.Features.Auth.Commands.Login;
 
 namespace Application.Common.Mappers;
 

@@ -1,6 +1,4 @@
-﻿
 // Domain/Enums/ProjectRole.cs
-
 public enum ProjectRole
 {
     Viewer = 0,

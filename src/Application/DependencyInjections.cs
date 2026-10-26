@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Application.Common.Mappers;
 using BusinessMakerFramework.Application.Common.Extensions;
 using BusinessMakerFramework.Shared.Extensions.Caching.InMemory.Extensions.DependencyInjection;
@@ -14,12 +14,10 @@ public static class DependencyInjections
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         MappingInitializer.Initialize();
-
         _ = services.AddValidationCultureInfo();
         _ = services.AddFrameworkMediator();
         _ = services.AddCommandHandlers();
         _ = services.AddNotificationHandlers();
-
         _ = services.AddFrameworkNotificationPublisher();
         _ = services.AddFrameworkPerformanceBehaviour();
         _ = services.AddFrameworkValidationBehaviour();

@@ -1,4 +1,4 @@
-﻿using Domain.Aggregates.ChangeRequestAggregate;
+using Domain.Aggregates.ChangeRequestAggregate;
 using Domain.Aggregates.FeatureAggregate;
 using Domain.Aggregates.FeatureAggregate.Events;
 using Domain.Aggregates.ProjectAggregate.Events;
@@ -7,15 +7,32 @@ namespace Domain.Aggregates.ProjectAggregate;
 
 public sealed class Project : AggregateRoot<Guid>
 {
-    public string Name { get; private set; }
-    public string Description { get; private set; }
-    public string DefaultStickiness { get; private set; }
-    public bool FeatureLimitEnabled { get; private set; }
-    public int? FeatureLimit { get; private set; }
-
+    public long Revision
+    {
+        get; private set;
+    }
+    public string Name
+    {
+        get; private set;
+    }
+    public string Description
+    {
+        get; private set;
+    }
+    public string DefaultStickiness
+    {
+        get; private set;
+    }
+    public bool FeatureLimitEnabled
+    {
+        get; private set;
+    }
+    public int? FeatureLimit
+    {
+        get; private set;
+    }
     public ICollection<ChangeRequest> ChangeRequests { get; private set; } = [];
     public ICollection<Feature> Features { get; private set; } = [];
-
     public ICollection<ProjectMember> Members { get; private set; } = [];
 
     private Project(Guid id, string name, string description, string defaultStickiness)
@@ -29,7 +46,9 @@ public sealed class Project : AggregateRoot<Guid>
     public static Project Create(string name, string description, string defaultStickiness = "default")
     {
         var project = new Project(Guid.NewGuid(), name, description, defaultStickiness);
+
         project.AddEvent(new ProjectCreatedEvent(project.Id, name));
+
         return project;
     }
 
@@ -44,23 +63,25 @@ public sealed class Project : AggregateRoot<Guid>
     {
         if (FeatureLimitEnabled && FeatureLimit.HasValue && Features.Count >= FeatureLimit.Value)
         {
-            throw new InvalidEntityStateException($"Project has reached feature limit of {FeatureLimit}");
+            throw new InvalidEntityStateException($"تعداد پرچم‌ها به سقف مجاز {FeatureLimit} رسیده است.");
         }
 
         if (Features.Any(f => f.Name == featureName))
         {
-            throw new InvalidEntityStateException($"Feature '{featureName}' already exists in project");
+            throw new InvalidEntityStateException($"پرچم «{featureName}» در پروژه موجود است.");
         }
 
+
         var feature = Feature.Create(Id, featureName, type, description);
+
         Features.Add(feature);
+
         return feature;
     }
 
     public void RemoveFeature(Guid featureId)
     {
-        var feature = Features.FirstOrDefault(f => f.Id == featureId)
-            ?? throw new InvalidEntityStateException($"Feature {featureId} not found");
+        var feature = Features.FirstOrDefault(f => f.Id == featureId) ?? throw new InvalidEntityStateException($"پرچم {featureId} یافت نشد.");
 
         feature.Archive();
         AddEvent(new FeatureArchivedEvent(featureId, Id));
@@ -70,16 +91,16 @@ public sealed class Project : AggregateRoot<Guid>
     {
         if (Members.Any(m => m.UserId == userId))
         {
-            throw new InvalidEntityStateException($"User {userId} is already a member");
+            throw new InvalidEntityStateException($"کاربر {userId} قبلاً عضو شده است.");
         }
+
 
         Members.Add(new ProjectMember(userId, role));
     }
 
     public void RemoveMember(Guid userId)
     {
-        var member = Members.FirstOrDefault(m => m.UserId == userId)
-            ?? throw new InvalidEntityStateException($"User {userId} is not a member");
+        var member = Members.FirstOrDefault(m => m.UserId == userId) ?? throw new InvalidEntityStateException($"کاربر {userId} عضو پروژه نیست.");
 
         _ = Members.Remove(member);
     }

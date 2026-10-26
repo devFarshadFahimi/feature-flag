@@ -1,4 +1,4 @@
-﻿using BusinessMakerFramework.Domain.Core.Events;
+using BusinessMakerFramework.Domain.Core.Events;
 
 namespace Domain.Aggregates.UserAggregate.Events;
 

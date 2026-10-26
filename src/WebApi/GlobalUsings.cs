@@ -1,4 +1,4 @@
-﻿global using Application.Features.ApiTokens.Queries.GetAllApiTokens;
+global using Application.Features.ApiTokens.Queries.GetAllApiTokens;
 global using Application.Features.ApiTokens.Queries.GetApiTokenById;
 global using BusinessMakerFramework.Endpoint.WebApi.BaseControllers;
 global using BusinessMakerFramework.Endpoint.WebApi.DependencyInjections;

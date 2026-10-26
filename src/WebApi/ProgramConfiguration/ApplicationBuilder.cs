@@ -1,4 +1,4 @@
-﻿using BusinessMakerFramework.Endpoint.WebApi.ApiDescriptorSetup;
+using BusinessMakerFramework.Endpoint.WebApi.ApiDescriptorSetup;
 using Infrastructure;
 
 namespace WebApi.ProgramConfiguration;
@@ -9,16 +9,22 @@ public static class ApplicationBuilder
     {
         // Seed database
         await app.Services.SeedDatabaseAsync();
-
-        app.UseFrameworkExceptionHandler();
+        app.UseExceptionHandler();
         app.MapOpenApiAndScalar();
-
         _ = app.UseHttpsRedirection();
         _ = app.UseCors(p =>
         {
             _ = p.AllowAnyHeader();
             _ = p.AllowAnyMethod();
-            _ = p.AllowAnyOrigin();
+
+            var origins = app.Configuration
+                .GetSection("Cors:AllowedOrigins")
+                .Get<string[]>() ?? [];
+
+            if (origins.Length > 0)
+            {
+                _ = p.WithOrigins(origins);
+            }
         });
         _ = app.UseAuthentication();
         _ = app.UseAuthorization();

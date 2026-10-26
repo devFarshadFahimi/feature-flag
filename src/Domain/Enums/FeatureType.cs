@@ -1,4 +1,4 @@
-﻿public enum FeatureType
+public enum FeatureType
 {
     Release = 0,
     Experiment = 1,

@@ -1,4 +1,3 @@
-﻿
 // Domain/Enums/EnvironmentType.cs
 public enum EnvironmentType
 {

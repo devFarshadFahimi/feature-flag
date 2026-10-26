@@ -1,17 +1,16 @@
 namespace Application.Features.Features.Commands.EnableFeatureImpressionData;
 
 public record EnableFeatureImpressionDataCommand(Guid Id, bool Enabled) : ICommandRequest;
-
-internal class EnableFeatureImpressionDataCommandHandler(IApplicationDbContext dbContext)
-    : CommandRequestHandler<EnableFeatureImpressionDataCommand>
+internal class EnableFeatureImpressionDataCommandHandler(IApplicationDbContext dbContext) : CommandRequestHandler<EnableFeatureImpressionDataCommand>
 {
     public override async Task<Result> Handle(EnableFeatureImpressionDataCommand request, CancellationToken cancellationToken)
     {
-        var feature = await dbContext.Features.FindAsync([request.Id], cancellationToken)
-                ?? throw new InvalidEntityStateException(nameof(Feature), request.Id + string.Empty);
+        var feature = await dbContext.Features.FindAsync([request.Id], cancellationToken) ?? throw new KeyNotFoundException("رکورد درخواستی یافت نشد.");
 
         feature.EnableImpressionData(request.Enabled);
+
         await dbContext.SaveChangeAsync(cancellationToken);
+
         return Ok();
     }
 }

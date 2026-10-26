@@ -1,4 +1,4 @@
-﻿using Domain.Aggregates.FeatureAggregate;
+using Domain.Aggregates.FeatureAggregate;
 
 namespace Infrastructure.Configurations;
 
@@ -7,54 +7,50 @@ public class FeatureConfiguration : ApplicationConfiguration<Feature>
     public override void Configure(EntityTypeBuilder<Feature> builder)
     {
         base.Configure(builder);
-
         // Properties
-        _ = builder.Property(f => f.ProjectId)
+        _ = builder
+            .Property(f => f.ProjectId)
             .IsRequired();
-
-        _ = builder.Property(f => f.Name)
+        _ = builder
+            .Property(f => f.Name)
             .IsRequired()
             .HasMaxLength(255);
-
-        _ = builder.Property(f => f.Type)
+        _ = builder
+            .Property(f => f.Type)
             .HasConversion<string>()
             .HasMaxLength(32)
             .IsRequired();
-
-        _ = builder.Property(f => f.Description)
+        _ = builder
+            .Property(f => f.Description)
             .HasMaxLength(2000);
-
-        _ = builder.Property(f => f.LifeCycle)
+        _ = builder
+            .Property(f => f.LifeCycle)
             .HasConversion<string>()
             .HasMaxLength(32)
             .IsRequired()
             .HasDefaultValue(FeatureLifecycle.Planned);
-
-        _ = builder.Property(f => f.IsStale)
+        _ = builder
+            .Property(f => f.IsStale)
             .IsRequired()
             .HasDefaultValue(false);
-
-        _ = builder.Property(f => f.ImpressionDataEnabled)
+        _ = builder
+            .Property(f => f.ImpressionDataEnabled)
             .IsRequired()
             .HasDefaultValue(false);
-
-        _ = builder.Property(f => f.CreatedAt)
+        _ = builder
+            .Property(f => f.CreatedAt)
             .IsRequired();
-
         _ = builder.Property(f => f.ArchivedAt);
-
         // Indexes
-        _ = builder.HasIndex(f => new { f.ProjectId, f.Name })
+        _ = builder
+            .HasIndex(f => new { f.ProjectId, f.Name })
             .IsUnique()
             .HasFilter("\"ArchivedAt\" IS NULL");
-
-        _ = builder.HasIndex(f => f.Name)
+        _ = builder
+            .HasIndex(f => f.Name)
             .IsUnique();
-
         _ = builder.HasIndex(f => f.ProjectId);
-
         _ = builder.HasIndex(f => f.LifeCycle);
-
         _ = builder.PrimitiveCollection(p => p.Tags);
         // Tags stored as JSON array
         //_ = builder.Property(f => f.Tags)
@@ -63,12 +59,11 @@ public class FeatureConfiguration : ApplicationConfiguration<Feature>
         //        v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(
         //            v, (System.Text.Json.JsonSerializerOptions?)null) ?? new())
         //    .HasColumnType("jsonb");
-
         // Relationships
-        _ = builder.HasMany(f => f.Environments)
+        _ = builder
+            .HasMany(f => f.Environments)
             .WithOne(p => p.Feature)
             .HasForeignKey(e => e.FeatureId)
             .OnDelete(DeleteBehavior.Cascade);
-
     }
 }

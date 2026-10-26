@@ -1,22 +1,41 @@
-﻿namespace Domain.Aggregates.FeatureAggregate;
+namespace Domain.Aggregates.FeatureAggregate;
 
 public sealed class FeatureStrategy : Entity<Guid>
 {
-    public StrategyType Type { get; private set; }
-    public StrategyParameters Parameters { get; private set; }
-    public int SortOrder { get; private set; }
+    public long Revision
+    {
+        get; private set;
+    }
+    public StrategyType Type
+    {
+        get; private set;
+    }
+    public StrategyParameters Parameters
+    {
+        get; private set;
+    }
+    public bool Enabled { get; private set; } = true;
 
-
-    public Guid EnvironmentId { get; private set; }
+    public void SetEnabled(bool enabled) => Enabled = enabled;
+    public int SortOrder
+    {
+        get; private set;
+    }
+    public Guid EnvironmentId
+    {
+        get; private set;
+    }
     public Environment Environment { get; set; } = null!;
-
-
-    public Guid FeatureEnvironmentId { get; set; }
+    public Guid FeatureEnvironmentId
+    {
+        get; set;
+    }
     public FeatureEnvironment FeatureEnvironment { get; set; } = null!;
-
-    public Guid FeatureId { get; private set; }
+    public Guid FeatureId
+    {
+        get; private set;
+    }
     public Feature Feature { get; set; } = null!;
-
     public List<Constraint> Constraints { get; private set; } = [];
     public List<int> SegmentIds { get; private set; } = [];
     public ICollection<Variant> Variants { get; private set; } = [];
@@ -25,13 +44,7 @@ public sealed class FeatureStrategy : Entity<Guid>
     {
     }
 
-    public static FeatureStrategy Create(
-        Guid featureId,
-        Guid environmentId,
-        StrategyType type,
-        StrategyParameters parameters,
-        IEnumerable<Constraint>? constraints = null,
-        IEnumerable<int>? segmentIds = null)
+    public static FeatureStrategy Create(Guid featureId, Guid environmentId, StrategyType type, StrategyParameters parameters, IEnumerable<Constraint>? constraints = null, IEnumerable<int>? segmentIds = null)
     {
         var strategy = new FeatureStrategy
         {
@@ -52,6 +65,7 @@ public sealed class FeatureStrategy : Entity<Guid>
             strategy.SegmentIds.AddRange(segmentIds);
         }
 
+
         return strategy;
     }
 
@@ -69,8 +83,9 @@ public sealed class FeatureStrategy : Entity<Guid>
     {
         if (index < 0 || index >= Constraints.Count)
         {
-            throw new ArgumentOutOfRangeException(nameof(index));
+            throw new ArgumentOutOfRangeException(nameof(index), "شماره قید معتبر نیست.");
         }
+
 
         Constraints.RemoveAt(index);
     }
@@ -90,8 +105,11 @@ public sealed class FeatureStrategy : Entity<Guid>
 
     public void SetVariants(IEnumerable<Variant> variants)
     {
+        var replacement = variants.ToList();
+
+        Variant.ValidateSet(replacement);
         Variants.Clear();
-        Variants = [.. variants];
+        Variants = replacement;
     }
 
     public void UpdateSortOrder(int order)

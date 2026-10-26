@@ -3,7 +3,7 @@
     <PropertyGroup>
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
         <MicrosoftRelatedPackagesVersion>10.0.8</MicrosoftRelatedPackagesVersion>
-        <BusinessFrameworkPackagesVersion>0.3.20</BusinessFrameworkPackagesVersion>
+        <BusinessFrameworkPackagesVersion>0.3.22-preview</BusinessFrameworkPackagesVersion>
         <BuildingBlockPackagesVersion>0.3.4-preview</BuildingBlockPackagesVersion>
     </PropertyGroup>
     <ItemGroup>
@@ -19,6 +19,7 @@
         <PackageVersion Include="BusinessFramework.Application.Service" Version="$(BusinessFrameworkPackagesVersion)" />
         <PackageVersion Include="BusinessFramework.Domain.Core" Version="$(BusinessFrameworkPackagesVersion)" />
         <PackageVersion Include="BusinessFramework.Shared.Abstractions.Caching" Version="$(BusinessFrameworkPackagesVersion)" />
+        <PackageVersion Include="BusinessFramework.Shared.Abstractions.UserManagement" Version="$(BusinessFrameworkPackagesVersion)" />
         <PackageVersion Include="BusinessFramework.Shared.Abstractions.Serializer" Version="$(BusinessFrameworkPackagesVersion)" />
         <PackageVersion Include="BusinessFramework.Shared.Extensions.Caching.InMemory" Version="$(BusinessFrameworkPackagesVersion)" />
         <PackageVersion Include="BusinessFramework.Shared.Extensions.Serializer.Microsoft" Version="$(BusinessFrameworkPackagesVersion)" />
@@ -43,6 +44,7 @@
         <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
         <PackageVersion Include="MassTransit.EntityFrameworkCore" Version="8.5.9" />
         <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftRelatedPackagesVersion)" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftRelatedPackagesVersion)" />
         <PackageVersion Include="Npgsql" Version="10.0.2" />
         <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
         <PackageVersion Include="AspNetCore.HealthChecks.UI.PostgreSQL.Storage" Version="9.0.0" />

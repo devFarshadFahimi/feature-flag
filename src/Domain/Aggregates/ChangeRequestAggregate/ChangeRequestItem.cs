@@ -1,14 +1,24 @@
-﻿namespace Domain.Aggregates.ChangeRequestAggregate;
+namespace Domain.Aggregates.ChangeRequestAggregate;
 
 public sealed class ChangeRequestItem : Entity<Guid>
 {
-    public Guid ChangeRequestId { get; private set; }
+    public Guid ChangeRequestId
+    {
+        get; private set;
+    }
     public ChangeRequest ChangeRequest { get; private set; } = null!;
-
-
-    public string Action { get; private set; }
-    public Guid? FeatureId { get; private set; }
-    public string? Payload { get; private set; }
+    public string Action
+    {
+        get; private set;
+    }
+    public Guid? FeatureId
+    {
+        get; private set;
+    }
+    public string? Payload
+    {
+        get; private set;
+    }
 
     private ChangeRequestItem()
     {

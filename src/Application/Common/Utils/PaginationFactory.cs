@@ -1,11 +1,14 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 
 namespace Application.Common.Utils;
 
 [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
 public class MapToEntityAttribute : Attribute
 {
-    public string EntityPropertyPath { get; }
+    public string EntityPropertyPath
+    {
+        get;
+    }
 
     public MapToEntityAttribute(string entityPropertyPath)
     {
@@ -15,10 +18,18 @@ public class MapToEntityAttribute : Attribute
 
 public class FilterCriteria
 {
-    public string? Column { get; set; }
-
-    public string? Query { get; set; }
-    public FilterCondition Condition { get; set; }
+    public string? Column
+    {
+        get; set;
+    }
+    public string? Query
+    {
+        get; set;
+    }
+    public FilterCondition Condition
+    {
+        get; set;
+    }
 }
 
 public enum FilterCondition
@@ -37,7 +48,10 @@ public class PaginationParams
 {
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
-    public string? SortColumn { get; set; }
+    public string? SortColumn
+    {
+        get; set;
+    }
     public bool SortDescending { get; set; } = false;
     public List<FilterCriteria> Filters { get; set; } = [];
 }
@@ -45,16 +59,23 @@ public class PaginationParams
 public class PaginationResult<T>
 {
     public IEnumerable<T> Data { get; set; } = [];
-    public int TotalRecords { get; set; }
-    public int PageSize { get; set; }
-    public int PageNumber { get; set; }
+    public int TotalRecords
+    {
+        get; set;
+    }
+    public int PageSize
+    {
+        get; set;
+    }
+    public int PageNumber
+    {
+        get; set;
+    }
 }
 
 public static class PaginationFactory
 {
-    public async static Task<PaginationResult<TModel>> GetPaginatedDataAsync<TModel, TEntity>(
-        this IQueryable<TEntity> query,
-        PaginationParams paginationParams)
+    public async static Task<PaginationResult<TModel>> GetPaginatedDataAsync<TModel, TEntity>(this IQueryable<TEntity> query, PaginationParams paginationParams)
         where TModel : new()
     {
         // Apply filtering
@@ -71,14 +92,12 @@ public static class PaginationFactory
 
         // Get total records count before pagination
         var totalRecords = await query.CountAsync();
-
         // Apply pagination
         var data = await query
             .Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
             .Take(paginationParams.PageSize)
             .ProjectToDto<TEntity, TModel>()
             .ToListAsync();
-
         // Return paginated result
         return new PaginationResult<TModel>
         {
@@ -93,15 +112,18 @@ public static class PaginationFactory
         where TModel : new()
     {
         var parameter = Expression.Parameter(typeof(TEntity), "e");
-        var bindings = typeof(TModel).GetProperties().Select(dtoProperty =>
+        var bindings = typeof(TModel)
+            .GetProperties()
+            .Select(dtoProperty =>
         {
             var entityPropertyPath = GetEntityPropertyPath<TModel>(dtoProperty.Name);
             var entityProperty = GetNestedPropertyExpression(parameter, entityPropertyPath);
+
             return Expression.Bind(dtoProperty, entityProperty);
         });
-
         var body = Expression.MemberInit(Expression.New(typeof(TModel)), bindings);
         var selector = Expression.Lambda<Func<TEntity, TModel>>(body, parameter);
+
         return query.Select(selector);
     }
 
@@ -111,10 +133,11 @@ public static class PaginationFactory
         var property = Expression.Property(parameter, sortColumn);
         var lambda = Expression.Lambda(property, parameter);
         var methodName = sortDescending ? "OrderByDescending" : "OrderBy";
-        var resultExpression = Expression.Call(typeof(Queryable), methodName, [query.ElementType, property.Type],
-            query.Expression, Expression.Quote(lambda));
+        var resultExpression = Expression.Call(typeof(Queryable), methodName, [query.ElementType, property.Type], query.Expression, Expression.Quote(lambda));
+
         return query.Provider.CreateQuery<T>(resultExpression);
     }
+
     private static IQueryable<T> ApplyFilters<TModel, T>(IQueryable<T> query, List<FilterCriteria> filters)
     {
         foreach (var filter in filters)
@@ -125,8 +148,10 @@ public static class PaginationFactory
             var constant = ConvertFilterValue(filter.Query, property.Type);
             var filterExpression = CreateFilterExpression(property, constant, filter.Condition);
             var lambda = Expression.Lambda<Func<T, bool>>(filterExpression, parameter);
+
             query = query.Where(lambda);
         }
+
 
         return query;
     }
@@ -134,16 +159,20 @@ public static class PaginationFactory
     private static string GetEntityPropertyPath<T>(string dtoPropertyName)
     {
         var dtoProperty = typeof(T).GetProperty(dtoPropertyName);
+
         if (dtoProperty != null)
         {
-            var attribute = dtoProperty.GetCustomAttributes(typeof(MapToEntityAttribute), false)
+            var attribute = dtoProperty
+                .GetCustomAttributes(typeof(MapToEntityAttribute), false)
                 .Cast<MapToEntityAttribute>()
                 .FirstOrDefault();
+
             if (attribute != null)
             {
                 return attribute.EntityPropertyPath;
             }
         }
+
 
         return dtoPropertyName; // Default to the same name if no attribute is found
     }
@@ -157,14 +186,17 @@ public static class PaginationFactory
         foreach (var propName in properties)
         {
             var propertyInfo = propertyType.GetProperty(propName);
+
             if (propertyInfo == null)
             {
-                throw new InvalidOperationException($"Property '{propName}' not found on type '{propertyType.FullName}'");
+                throw new InvalidOperationException($"ویژگی «{propName}» در نوع «{propertyType.FullName}» یافت نشد.");
             }
+
 
             property = Expression.Property(property, propertyInfo);
             propertyType = propertyInfo.PropertyType;
         }
+
 
         return (MemberExpression)property;
     }
@@ -172,6 +204,7 @@ public static class PaginationFactory
     private static Expression ConvertFilterValue(string query, Type propertyType)
     {
         object value;
+
         if (propertyType == typeof(string))
         {
             value = query;
@@ -198,31 +231,26 @@ public static class PaginationFactory
         }
         else
         {
-            throw new InvalidOperationException($"Unsupported filter type: {propertyType}");
+            throw new InvalidOperationException($"نوع پالایه پشتیبانی نمی‌شود: {propertyType}");
         }
+
 
         return Expression.Constant(value, propertyType);
     }
 
-    private static Expression CreateFilterExpression(MemberExpression property, Expression constant,
-        FilterCondition condition)
+    private static Expression CreateFilterExpression(MemberExpression property, Expression constant, FilterCondition condition)
     {
         Expression filterExpression;
+
         if (property.Type == typeof(string))
         {
             filterExpression = condition switch
             {
-                FilterCondition.Contains => Expression.Call(
-                    property,
-                    typeof(string).GetMethod("Contains", [typeof(string)])!, constant),
-                FilterCondition.StartsWith => Expression.Call(
-                    property,
-                    typeof(string).GetMethod("StartsWith", [typeof(string)])!, constant),
-                FilterCondition.EndsWith => Expression.Call(
-                    property,
-                    typeof(string).GetMethod("EndsWith", [typeof(string)])!, constant),
+                FilterCondition.Contains => Expression.Call(property, typeof(string).GetMethod("Contains", [typeof(string)])!, constant),
+                FilterCondition.StartsWith => Expression.Call(property, typeof(string).GetMethod("StartsWith", [typeof(string)])!, constant),
+                FilterCondition.EndsWith => Expression.Call(property, typeof(string).GetMethod("EndsWith", [typeof(string)])!, constant),
                 FilterCondition.Equals => Expression.Equal(property, constant),
-                _ => throw new InvalidOperationException($"Unsupported condition for type string: {condition}")
+                _ => throw new InvalidOperationException($"شرط رشته‌ای پشتیبانی نمی‌شود: {condition}")
             };
         }
         else if (property.Type == typeof(int) || property.Type == typeof(long) || property.Type == typeof(DateTime))
@@ -234,22 +262,24 @@ public static class PaginationFactory
                 FilterCondition.LessThan => Expression.LessThan(property, constant),
                 FilterCondition.GreaterThanOrEqual => Expression.GreaterThanOrEqual(property, constant),
                 FilterCondition.LessThanOrEqual => Expression.LessThanOrEqual(property, constant),
-                _ => throw new InvalidOperationException($"Unsupported condition for type {property.Type}: {condition}")
+                _ => throw new InvalidOperationException($"شرط برای نوع {property.Type} پشتیبانی نمی‌شود: {condition}")
             };
         }
         else if (property.Type == typeof(bool) || property.Type.IsEnum)
         {
             if (condition != FilterCondition.Equals)
             {
-                throw new InvalidOperationException($"Unsupported condition for type bool: {condition}");
+                throw new InvalidOperationException($"شرط منطقی پشتیبانی نمی‌شود: {condition}");
             }
+
 
             filterExpression = Expression.Equal(property, constant);
         }
         else
         {
-            throw new InvalidOperationException($"Unsupported filter type: {property.Type.Name}");
+            throw new InvalidOperationException($"نوع پالایه پشتیبانی نمی‌شود: {property.Type.Name}");
         }
+
 
         return filterExpression;
     }

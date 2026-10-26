@@ -1,24 +1,55 @@
-﻿using Domain.Aggregates.FeatureAggregate.Events;
+using Domain.Aggregates.FeatureAggregate.Events;
 using Domain.Aggregates.ProjectAggregate;
 
 namespace Domain.Aggregates.FeatureAggregate;
 
 public sealed class Feature : AggregateRoot<Guid>
 {
-    public string Name { get; private set; }
-    public FeatureType Type { get; private set; }
-    public string? Description { get; private set; }
-    public FeatureLifecycle LifeCycle { get; private set; }
-    public bool IsStale { get; private set; }
-    public bool ImpressionDataEnabled { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public DateTime? ArchivedAt { get; private set; }
-
-    public Guid ProjectId { get; private set; }
+    public long Revision
+    {
+        get; private set;
+    }
+    public string Name
+    {
+        get; private set;
+    }
+    public FeatureType Type
+    {
+        get; private set;
+    }
+    public string? Description
+    {
+        get; private set;
+    }
+    public FeatureLifecycle LifeCycle
+    {
+        get; private set;
+    }
+    public bool IsStale
+    {
+        get; private set;
+    }
+    public bool ImpressionDataEnabled
+    {
+        get; private set;
+    }
+    public DateTime CreatedAt
+    {
+        get; private set;
+    }
+    public DateTime? ArchivedAt
+    {
+        get; private set;
+    }
+    public Guid ProjectId
+    {
+        get; private set;
+    }
     public Project Project { get; private set; } = null!;
-
     public ICollection<FeatureEnvironment> Environments { get; private set; } = [];
+    public List<Domain.Evaluation.Prerequisite> Prerequisites { get; private set; } = [];
 
+    public void SetPrerequisites(IEnumerable<Domain.Evaluation.Prerequisite> prerequisites) => Prerequisites = prerequisites.ToList();
     public List<string> Tags { get; private set; } = [];
 
     private Feature()
@@ -27,6 +58,12 @@ public sealed class Feature : AggregateRoot<Guid>
 
     public static Feature Create(Guid projectId, string name, FeatureType type, string? description = null)
     {
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 255 || !Enum.IsDefined(type))
+        {
+            throw new ArgumentException("نام یا نوع پرچم معتبر نیست.");
+        }
+
+
         var feature = new Feature
         {
             Id = Guid.NewGuid(),
@@ -39,6 +76,7 @@ public sealed class Feature : AggregateRoot<Guid>
         };
 
         feature.AddEvent(new FeatureCreatedEvent(feature.Id, projectId, name));
+
         return feature;
     }
 
@@ -46,17 +84,16 @@ public sealed class Feature : AggregateRoot<Guid>
     {
         if (Environments.Any(e => e.EnvironmentId == environmentId))
         {
-            throw new InvalidEntityStateException($"Environment {environmentId} already initialized");
+            throw new InvalidEntityStateException($"محیط {environmentId} قبلاً ایجاد شده است.");
         }
 
+
         var env = FeatureEnvironment.Create(Id, environmentId, defaultVariants);
+
         Environments.Add(env);
     }
 
-    public FeatureEnvironment GetEnvironment(Guid environmentId) =>
-        Environments.FirstOrDefault(e => e.EnvironmentId == environmentId)
-        ?? throw new InvalidEntityStateException($"Environment {environmentId} not found");
-
+    public FeatureEnvironment GetEnvironment(Guid environmentId) => Environments.FirstOrDefault(e => e.EnvironmentId == environmentId) ?? throw new InvalidEntityStateException($"محیط {environmentId} یافت نشد.");
     public void Update(string? description, FeatureType? type)
     {
         if (description != null)
@@ -68,6 +105,7 @@ public sealed class Feature : AggregateRoot<Guid>
         {
             Type = type.Value;
         }
+
 
         AddEvent(new FeatureUpdatedEvent(Id, ProjectId, Name));
     }

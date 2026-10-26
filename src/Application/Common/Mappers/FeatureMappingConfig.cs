@@ -1,8 +1,7 @@
-﻿using Application.Features.Features.Queries.GetFeatureById;
+using Application.Features.Features.Queries.GetFeatureById;
 using Domain.ValueObjects;
 
 namespace Application.Common.Mappers;
-
 
 public static class FeatureMappingConfig
 {
@@ -12,13 +11,11 @@ public static class FeatureMappingConfig
         _ = TypeAdapterConfig<StrategyParameters, Dictionary<string, object>>
             .NewConfig()
             .MapWith(p => ConvertToDictionary(p));
-
         // Constraint → ConstraintResponse
         _ = TypeAdapterConfig<Constraint, ConstraintResponse>
             .NewConfig()
             .Map(dest => dest.Operator, src => src.Operator.ToString())
             .Map(dest => dest.Values, src => src.Values.ToList());
-
         // FeatureStrategy → FeatureStrategyResponse
         _ = TypeAdapterConfig<FeatureStrategy, FeatureStrategyResponse>
             .NewConfig()
@@ -26,12 +23,10 @@ public static class FeatureMappingConfig
             .Map(dest => dest.Parameters, src => src.Parameters.Adapt<Dictionary<string, object>>())
             .Map(dest => dest.Constraints, src => src.Constraints.Adapt<List<ConstraintResponse>>())
             .Map(dest => dest.SegmentIds, src => src.SegmentIds.ToList());
-
         // FeatureEnvironment → FeatureEnvironmentResponse
         _ = TypeAdapterConfig<FeatureEnvironment, FeatureEnvironmentResponse>
             .NewConfig()
             .Map(dest => dest.Strategies, src => src.Strategies.Adapt<List<FeatureStrategyResponse>>());
-
         // Feature → FeatureResponse
         _ = TypeAdapterConfig<Feature, FeatureResponse>
             .NewConfig()

@@ -1,4 +1,3 @@
-﻿
 // Domain/Enums/ChangeRequestStatus.cs
 public enum ChangeRequestStatus
 {
@@ -8,5 +7,7 @@ public enum ChangeRequestStatus
     Rejected = 3,
     Applied = 4,
     Scheduled = 5,
-    Cancelled = 6
+    Cancelled = 6,
+    Suspended = 7,
+    Failed = 8
 }

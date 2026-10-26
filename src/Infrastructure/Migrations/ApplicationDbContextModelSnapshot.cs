@@ -88,8 +88,15 @@ namespace Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("BusinessId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("CapturedRevisions")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -104,8 +111,29 @@ namespace Infrastructure.Migrations
                     b.Property<Guid>("EnvironmentId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("ProjectId")
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PredecessorId")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("RequiredApprovals")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ResultRevisions")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime?>("ReviewedAt")
                         .HasColumnType("timestamp with time zone");
@@ -117,8 +145,19 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("uuid[]");
 
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime?>("ScheduledAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ScheduledBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ScopeFingerprint")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -211,6 +250,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
                     b.Property<int>("SortOrder")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -277,8 +320,16 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<string>("Prerequisites")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
 
                     b.PrimitiveCollection<List<string>>("Tags")
                         .IsRequired()
@@ -331,6 +382,10 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime?>("LastSeenAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EnvironmentId");
@@ -350,6 +405,11 @@ namespace Infrastructure.Migrations
                     b.Property<Guid>("BusinessId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("Enabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<Guid>("EnvironmentId")
                         .HasColumnType("uuid");
 
@@ -358,6 +418,10 @@ namespace Infrastructure.Migrations
 
                     b.Property<Guid>("FeatureId")
                         .HasColumnType("uuid");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
 
                     b.Property<string>("SegmentIds")
                         .IsRequired()
@@ -385,6 +449,58 @@ namespace Infrastructure.Migrations
                     b.HasIndex("FeatureId", "EnvironmentId");
 
                     b.ToTable("TblFeatureStrategy", "App");
+                });
+
+            modelBuilder.Entity("Domain.Aggregates.HistoryAggregate.ConfigurationHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("After")
+                        .HasMaxLength(50)
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Before")
+                        .HasMaxLength(50)
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("EnvironmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResourceId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ResourceType")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId", "Timestamp");
+
+                    b.ToTable("ConfigurationHistory", "App");
                 });
 
             modelBuilder.Entity("Domain.Aggregates.ProjectAggregate.Project", b =>
@@ -419,6 +535,10 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
                     b.Property<int>("Version")
                         .HasColumnType("integer");
 
@@ -428,6 +548,31 @@ namespace Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("TblProject", "App");
+                });
+
+            modelBuilder.Entity("Domain.Aggregates.ProjectAggregate.ProjectEnvironmentPolicy", b =>
+                {
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EnvironmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("RequiredApprovals")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("ProjectId", "EnvironmentId");
+
+                    b.HasIndex("EnvironmentId");
+
+                    b.ToTable("ProjectEnvironmentPolicy", "App");
                 });
 
             modelBuilder.Entity("Domain.Aggregates.ProjectAggregate.ProjectMember", b =>
@@ -491,6 +636,13 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
                     b.Property<int>("Version")
                         .HasColumnType("integer");
 
@@ -502,6 +654,69 @@ namespace Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("TblSegment", "App");
+                });
+
+            modelBuilder.Entity("Domain.Aggregates.UsageAggregate.FlagUsage", b =>
+                {
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EnvironmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppName")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("FeatureName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Variant")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Impression")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("Hour")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Count")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ProjectId", "EnvironmentId", "AppName", "FeatureName", "Variant", "Enabled", "Impression", "Hour");
+
+                    b.HasIndex("Hour");
+
+                    b.ToTable("FlagUsage", "App");
+                });
+
+            modelBuilder.Entity("Domain.Aggregates.UsageAggregate.ImpressionBatch", b =>
+                {
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EnvironmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ProjectId", "EnvironmentId", "BatchId");
+
+                    b.HasIndex("ReceivedAt");
+
+                    b.ToTable("ImpressionBatch", "App");
                 });
 
             modelBuilder.Entity("Domain.Aggregates.UserAggregate.RefreshToken", b =>
@@ -527,6 +742,7 @@ namespace Infrastructure.Migrations
                         .HasDefaultValue(false);
 
                     b.Property<bool>("IsUsed")
+                        .IsConcurrencyToken()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
@@ -597,6 +813,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("character varying(32)")
                         .HasDefaultValue("Viewer");
 
+                    b.Property<Guid>("SecurityVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Version")
                         .HasColumnType("integer");
 
@@ -640,10 +860,10 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
-                    b.Property<int>("SegmentId")
+                    b.Property<int?>("SegmentId")
                         .HasColumnType("integer");
 
-                    b.Property<Guid>("StrategyId")
+                    b.Property<Guid?>("StrategyId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Values")
@@ -659,7 +879,10 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("StrategyId");
 
-                    b.ToTable("StrategyConstraints", (string)null);
+                    b.ToTable("StrategyConstraints", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Constraint_OneOwner", "(\"SegmentId\" IS NULL) <> (\"StrategyId\" IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("Domain.ValueObjects.Variant", b =>
@@ -704,7 +927,10 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("StrategyId");
 
-                    b.ToTable("TblVariant", "App");
+                    b.ToTable("TblVariant", "App", t =>
+                        {
+                            t.HasCheckConstraint("CK_Variant_OneOwner", "(\"FeatureEnvironmentId\" IS NULL) <> (\"StrategyId\" IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
@@ -748,8 +974,7 @@ namespace Infrastructure.Migrations
                     b.HasOne("Domain.Aggregates.ProjectAggregate.Project", "Project")
                         .WithMany("ChangeRequests")
                         .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Environment");
 
@@ -866,6 +1091,21 @@ namespace Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Domain.Aggregates.ProjectAggregate.ProjectEnvironmentPolicy", b =>
+                {
+                    b.HasOne("Domain.Aggregates.EnvironmentAggregate.Environment", null)
+                        .WithMany()
+                        .HasForeignKey("EnvironmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Aggregates.ProjectAggregate.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Domain.Aggregates.ProjectAggregate.ProjectMember", b =>
                 {
                     b.HasOne("Domain.Aggregates.ProjectAggregate.Project", "Project")
@@ -891,8 +1131,12 @@ namespace Infrastructure.Migrations
                     b.HasOne("Domain.Aggregates.SegmentAggregate.Segment", null)
                         .WithMany("Constraints")
                         .HasForeignKey("SegmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Aggregates.FeatureAggregate.FeatureStrategy", null)
+                        .WithMany("Constraints")
+                        .HasForeignKey("StrategyId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("Domain.ValueObjects.Variant", b =>
@@ -900,6 +1144,11 @@ namespace Infrastructure.Migrations
                     b.HasOne("Domain.Aggregates.FeatureAggregate.FeatureEnvironment", null)
                         .WithMany("Variants")
                         .HasForeignKey("FeatureEnvironmentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Aggregates.FeatureAggregate.FeatureStrategy", null)
+                        .WithMany("Variants")
+                        .HasForeignKey("StrategyId")
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
@@ -923,6 +1172,13 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Aggregates.FeatureAggregate.FeatureEnvironment", b =>
                 {
                     b.Navigation("Strategies");
+
+                    b.Navigation("Variants");
+                });
+
+            modelBuilder.Entity("Domain.Aggregates.FeatureAggregate.FeatureStrategy", b =>
+                {
+                    b.Navigation("Constraints");
 
                     b.Navigation("Variants");
                 });

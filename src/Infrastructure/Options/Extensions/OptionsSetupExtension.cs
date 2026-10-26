@@ -7,6 +7,7 @@ public static class OptionsSetupExtension
     public static IServiceCollection AddOptionsSetups(this IServiceCollection services)
     {
         _ = services.ConfigureOptions<AuthSettingOptionsSetup>();
+
         return services;
     }
 }

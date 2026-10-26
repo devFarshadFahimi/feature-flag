@@ -17,7 +17,10 @@ public class ChangeRequestsController(IMediator mediator) : ApiControllerBase(me
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateChangeRequestCommand command, CancellationToken cancellationToken)
     {
-        return await SendAsync(command, cancellationToken);
+        return await SendAsync(command with
+        {
+            CreatedBy = Guid.Parse(User.FindFirst("sub")!.Value)
+        }, cancellationToken);
     }
 
     [HttpGet]
@@ -35,9 +38,10 @@ public class ChangeRequestsController(IMediator mediator) : ApiControllerBase(me
     [HttpPost("{id:guid}/items")]
     public async Task<IActionResult> AddItem(Guid id, [FromBody] AddChangeRequestItemCommand command, CancellationToken cancellationToken)
     {
-        return id != command.ChangeRequestId
-            ? BadRequest(new { Message = "Change request id mismatch" })
-            : await SendAsync(command, cancellationToken);
+        return id != command.ChangeRequestId ? BadRequest(new
+        {
+            Message = "شناسه درخواست تغییر مسیر و بدنه یکسان نیست."
+        }) : await SendAsync(command, cancellationToken);
     }
 
     [HttpPost("{id:guid}/submit")]
@@ -49,13 +53,25 @@ public class ChangeRequestsController(IMediator mediator) : ApiControllerBase(me
     [HttpPost("{id:guid}/approve")]
     public async Task<IActionResult> Approve(Guid id, [FromBody] ApproveChangeRequestCommand command, CancellationToken cancellationToken)
     {
-        return id != command.Id ? BadRequest(new { Message = "Id mismatch" }) : await SendAsync(command, cancellationToken);
+        return id != command.Id ? BadRequest(new
+        {
+            Message = "شناسه مسیر و درخواست یکسان نیست."
+        }) : await SendAsync(command with
+        {
+            ReviewerId = Guid.Parse(User.FindFirst("sub")!.Value)
+        }, cancellationToken);
     }
 
     [HttpPost("{id:guid}/reject")]
     public async Task<IActionResult> Reject(Guid id, [FromBody] RejectChangeRequestCommand command, CancellationToken cancellationToken)
     {
-        return id != command.Id ? BadRequest(new { Message = "Id mismatch" }) : await SendAsync(command, cancellationToken);
+        return id != command.Id ? BadRequest(new
+        {
+            Message = "شناسه مسیر و درخواست یکسان نیست."
+        }) : await SendAsync(command with
+        {
+            ReviewerId = Guid.Parse(User.FindFirst("sub")!.Value)
+        }, cancellationToken);
     }
 
     [HttpPost("{id:guid}/apply")]
@@ -67,7 +83,10 @@ public class ChangeRequestsController(IMediator mediator) : ApiControllerBase(me
     [HttpPost("{id:guid}/schedule")]
     public async Task<IActionResult> Schedule(Guid id, [FromBody] ScheduleChangeRequestCommand command, CancellationToken cancellationToken)
     {
-        return id != command.Id ? BadRequest(new { Message = "Id mismatch" }) : await SendAsync(command, cancellationToken);
+        return id != command.Id ? BadRequest(new
+        {
+            Message = "شناسه مسیر و درخواست یکسان نیست."
+        }) : await SendAsync(command, cancellationToken);
     }
 
     [HttpPost("{id:guid}/cancel")]

@@ -2,8 +2,8 @@ using Application.Common.Interfaces;
 using Application.Common.Services;
 using Domain.Aggregates.UserAggregate;
 using Domain.Enums;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Persistence.Seed;
 
@@ -12,39 +12,38 @@ public static class DatabaseSeeder
     public static async Task SeedAdminUserAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-        var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<IApplicationDbContext>>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
-        try
+        if (!configuration.GetValue<bool>("Bootstrap:Enabled"))
         {
-            // Check if admin user already exists
-            var existingAdmin = await dbContext.Users
-                .FirstOrDefaultAsync(u => u.Email == "admin@featureflags.com");
-
-            if (existingAdmin != null)
-            {
-                logger.LogInformation("Admin user already exists");
-                return;
-            }
-
-            // Create admin user
-            var passwordHash = passwordHasher.HashPassword("Admin@123456");
-            var adminUser = User.Create(
-                "admin@featureflags.com",
-                passwordHash,
-                UserRole.RootAdmin,
-                "System Administrator");
-
-            _ = dbContext.Users.Add(adminUser);
-            await dbContext.SaveChangeAsync(CancellationToken.None);
-
-            logger.LogInformation("Admin user seeded successfully");
+            return;
         }
-        catch (Exception ex)
+
+
+        var email = configuration["Bootstrap:Email"];
+        var password = configuration["Bootstrap:Password"];
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || password.Length < 12)
         {
-            logger.LogError(ex, "Error seeding admin user");
-            throw;
+            throw new InvalidOperationException("ایمیل و گذرواژه امن برای راه‌اندازی اولیه الزامی است.");
         }
+
+
+        var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
+        await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(8610043)");
+
+        if (!await db.Users.AnyAsync(u => u.Role == UserRole.RootAdmin && u.IsActive))
+        {
+            var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+
+            db.Users.Add(User.Create(email, hasher.HashPassword(password), UserRole.RootAdmin));
+
+            await db.SaveChangeAsync();
+        }
+
+
+        await transaction.CommitAsync();
     }
 }

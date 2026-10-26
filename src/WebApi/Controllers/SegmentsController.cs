@@ -35,8 +35,12 @@ public class SegmentsController(IMediator mediator) : ApiControllerBase(mediator
     {
         if (id != command.Id)
         {
-            return BadRequest(new { Message = "Id mismatch" });
+            return BadRequest(new
+            {
+                Message = "شناسه مسیر و درخواست یکسان نیست."
+            });
         }
+
 
         return await SendAsync(command, cancellationToken);
     }
@@ -52,8 +56,12 @@ public class SegmentsController(IMediator mediator) : ApiControllerBase(mediator
     {
         if (id != command.SegmentId)
         {
-            return BadRequest(new { Message = "Segment id mismatch" });
+            return BadRequest(new
+            {
+                Message = "شناسه بخش مسیر و درخواست یکسان نیست."
+            });
         }
+
 
         return await SendAsync(command, cancellationToken);
     }

@@ -13,6 +13,8 @@ namespace WebApi.Controllers;
 [Authorize]
 public class EnvironmentsController(IMediator mediator) : ApiControllerBase(mediator)
 {
+    [HttpPost("{id:guid}/protection")]
+    public Task<IActionResult> Protect(Guid id, [FromBody] Application.Features.ChangeRequests.ProtectEnvironmentCommand command, CancellationToken cancellationToken) => id != command.EnvironmentId ? Task.FromResult<IActionResult>(BadRequest(new { Message = "شناسه محیط یکسان نیست." })) : SendAsync(command, cancellationToken);
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEnvironmentCommand command, CancellationToken cancellationToken)
     {
@@ -34,7 +36,10 @@ public class EnvironmentsController(IMediator mediator) : ApiControllerBase(medi
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEnvironmentCommand command, CancellationToken cancellationToken)
     {
-        return id != command.Id ? BadRequest(new { Message = "Id mismatch" }) : await SendAsync(command, cancellationToken);
+        return id != command.Id ? BadRequest(new
+        {
+            Message = "شناسه مسیر و درخواست یکسان نیست."
+        }) : await SendAsync(command, cancellationToken);
     }
 
     [HttpDelete("{id:guid}")]
@@ -58,9 +63,10 @@ public class EnvironmentsController(IMediator mediator) : ApiControllerBase(medi
     [HttpPost("{id:guid}/tokens")]
     public async Task<IActionResult> CreateToken(Guid id, [FromBody] CreateApiTokenCommand command, CancellationToken cancellationToken)
     {
-        return id != command.EnvironmentId
-            ? BadRequest(new { Message = "Environment id mismatch" })
-            : await SendAsync(command, cancellationToken);
+        return id != command.EnvironmentId ? BadRequest(new
+        {
+            Message = "شناسه محیط مسیر و درخواست یکسان نیست."
+        }) : await SendAsync(command, cancellationToken);
     }
 
     [HttpPost("{id:guid}/tokens/{tokenId:guid}/revoke")]

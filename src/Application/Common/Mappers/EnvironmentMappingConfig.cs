@@ -1,4 +1,4 @@
-﻿namespace Application.Common.Mappers;
+namespace Application.Common.Mappers;
 
 public static class EnvironmentMappingConfig
 {
@@ -8,7 +8,6 @@ public static class EnvironmentMappingConfig
         _ = TypeAdapterConfig<ApiToken, ApiTokenResponse>
             .NewConfig()
             .Map(dest => dest.TokenType, src => src.TokenType.ToString());
-
         // Environment → EnvironmentResponse
         _ = TypeAdapterConfig<Environment, EnvironmentResponse>
             .NewConfig()

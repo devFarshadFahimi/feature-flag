@@ -1,4 +1,4 @@
-﻿using Application.Features.ChangeRequests.Queries.GetChangeRequestById;
+using Application.Features.ChangeRequests.Queries.GetChangeRequestById;
 
 namespace Application.Common.Mappers;
 
@@ -7,9 +7,7 @@ public static class ChangeRequestMappingConfig
     public static void Configure()
     {
         // ChangeRequestItem → ChangeRequestItemResponse
-        _ = TypeAdapterConfig<ChangeRequestItem, ChangeRequestItemResponse>
-            .NewConfig();
-
+        _ = TypeAdapterConfig<ChangeRequestItem, ChangeRequestItemResponse>.NewConfig();
         // ChangeRequest → ChangeRequestResponse
         _ = TypeAdapterConfig<ChangeRequest, ChangeRequestResponse>
             .NewConfig()
