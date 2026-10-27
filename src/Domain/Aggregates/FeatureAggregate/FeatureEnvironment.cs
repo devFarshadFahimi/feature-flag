@@ -8,24 +8,31 @@ public sealed class FeatureEnvironment : Entity<Guid>
     }
 
     public void ConfigurationChanged() => Revision++;
+
     public Guid EnvironmentId
     {
         get; private set;
     }
+
     public bool Enabled
     {
         get; private set;
     }
+
     public DateTime? LastSeenAt
     {
         get; private set;
     }
+
     public Guid FeatureId
     {
         get; set;
     }
+
     public Feature Feature { get; set; } = null!;
+
     public ICollection<Variant> Variants { get; private set; } = [];
+
     public ICollection<FeatureStrategy> Strategies { get; private set; } = [];
 
     private FeatureEnvironment()
@@ -46,7 +53,6 @@ public sealed class FeatureEnvironment : Entity<Guid>
         {
             env.Variants = [.. defaultVariants];
         }
-
 
         return env;
     }

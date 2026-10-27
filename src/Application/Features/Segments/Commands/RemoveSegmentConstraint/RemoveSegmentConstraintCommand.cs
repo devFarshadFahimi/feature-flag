@@ -10,8 +10,10 @@ internal class RemoveSegmentConstraintCommandHandler(IApplicationDbContext dbCon
         var segment = await dbContext.Segments
             .Include(s => s.Constraints)
             .FirstOrDefaultAsync(s => s.Id == request.SegmentId, cancellationToken) ?? throw new KeyNotFoundException("رکورد درخواستی یافت نشد.");
+        var constraint = segment.Constraints.ElementAtOrDefault(request.ConstraintIndex);
 
         segment.RemoveConstraint(request.ConstraintIndex);
+        dbContext.SegmentConstraints.Remove(constraint!);
 
         await dbContext.SaveChangeAsync(cancellationToken);
 

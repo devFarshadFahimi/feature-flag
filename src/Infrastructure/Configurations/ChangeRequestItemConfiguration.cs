@@ -18,7 +18,7 @@ public class ChangeRequestItemConfiguration : ApplicationConfiguration<ChangeReq
         _ = builder.Property(i => i.FeatureId);
         _ = builder
             .Property(i => i.Payload)
-            .HasColumnType("jsonb");
+            .HasColumnType(PersistenceNames.JsonColumnType);
         // Indexes
         _ = builder.HasIndex(i => i.ChangeRequestId);
         _ = builder.HasIndex(i => i.FeatureId);

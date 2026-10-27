@@ -27,10 +27,8 @@ internal class GetAllChangeRequestsQueryHandler(IApplicationDbContext dbContext,
                 throw new ArgumentException("وضعیت درخواست تغییر معتبر نیست.");
             }
 
-
             query = query.Where(cr => cr.Status == status);
         }
-
 
         return await query
             .ProjectToType<ChangeRequestResponse>()

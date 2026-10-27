@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
     <PropertyGroup>
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        <UserSecretsId>feature-flag-local-development</UserSecretsId>
     </PropertyGroup>
 
 

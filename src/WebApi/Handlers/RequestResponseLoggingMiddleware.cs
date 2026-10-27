@@ -7,6 +7,7 @@ namespace WebApi.Handlers;
 public class RequestResponseLoggingMiddleware
 {
     private readonly RequestDelegate _next;
+
     public RequestResponseLoggingMiddleware(RequestDelegate next)
     {
         _next = next;

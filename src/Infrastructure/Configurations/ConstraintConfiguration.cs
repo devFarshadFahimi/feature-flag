@@ -5,18 +5,21 @@ namespace Infrastructure.Configurations;
 /// Configuration for Constraint value objects stored as a separate table
 /// (used by both FeatureStrategy and Segment).
 /// </summary>
-public class StrategyConstraintConfiguration : ApplicationConfiguration<Constraint>
+public class ConstraintConfiguration : ApplicationConfiguration<Constraint>
 {
     public override void Configure(EntityTypeBuilder<Constraint> builder)
     {
         base.Configure(builder);
+        builder.ToTable("StrategyConstraints", table => table.HasCheckConstraint("CK_Constraint_OneOwner", "(\"SegmentId\" IS NULL) <> (\"StrategyId\" IS NULL)"));
         // No PK from ValueObject base — use surrogate key via shadow property
         _ = builder
-            .Property<int>("Id")
+            .Property<int>(PersistenceNames.Id)
             .ValueGeneratedOnAdd();
-        _ = builder.HasKey("Id");
+        _ = builder.HasKey(PersistenceNames.Id);
         // Shadow FK
-        _ = builder.Property<Guid?>("StrategyId");
+        _ = builder.Property<Guid?>(PersistenceNames.StrategyId);
+        _ = builder.Property<int?>(PersistenceNames.SegmentId);
+        _ = builder.HasIndex(PersistenceNames.SegmentId);
         // Properties
         _ = builder
             .Property(c => c.ContextName)
@@ -40,9 +43,9 @@ public class StrategyConstraintConfiguration : ApplicationConfiguration<Constrai
             .Property(c => c.Values)
             .HasConversion(v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null), v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new())
             .HasColumnName("Values")
-            .HasColumnType("jsonb");
+            .HasColumnType(PersistenceNames.JsonColumnType);
         // Indexes
-        _ = builder.HasIndex("StrategyId");
+        _ = builder.HasIndex(PersistenceNames.StrategyId);
         _ = builder.HasIndex(c => c.ContextName);
     }
 }

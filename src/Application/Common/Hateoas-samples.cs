@@ -10,6 +10,7 @@ public class UserDto : IIdentifiable<long>
     {
         get; set;
     } // Compiler enforces this!
+
     public string Name
     {
         get; set;
@@ -39,6 +40,7 @@ public class GetUserQueryHandler : IRequestHandler<GetUserQuery, Resource<UserDt
 public class GetUsersQuery : IRequest<PagedResource<UserDto>>
 {
     public int Page { get; set; } = 1;
+
     public int PageSize { get; set; } = 10;
 }
 

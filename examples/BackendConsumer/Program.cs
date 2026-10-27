@@ -18,7 +18,6 @@ app.UseExceptionHandler(handler => handler.Run(async context =>
     context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
     await context.Response.WriteAsJsonAsync(new { message = "سرویس ارزیابی موقتاً در دسترس نیست." });
 }));
-
 app.MapGet("/features", async (HttpContext context, IHttpClientFactory clients, IConfiguration configuration) =>
 {
     context.Response.Headers.CacheControl = "no-store";
@@ -33,7 +32,6 @@ app.MapGet("/features", async (HttpContext context, IHttpClientFactory clients, 
         return Results.Json(new { message = "تنظیمات پروژه یا محیط معتبر نیست." }, statusCode: 503);
     }
 
-
     var client = clients.CreateClient("flags");
 
     client.DefaultRequestHeaders.Authorization = authorization;
@@ -45,7 +43,6 @@ app.MapGet("/features", async (HttpContext context, IHttpClientFactory clients, 
         return Results.Json(new { message = "نشست کاربر معتبر نیست." }, statusCode: (int)identity.StatusCode);
     }
 
-
     using var user = await JsonDocument.ParseAsync(await identity.Content.ReadAsStreamAsync(context.RequestAborted), cancellationToken: context.RequestAborted);
     var names = context.Request.Query["name"]
         .Where(n => !string.IsNullOrWhiteSpace(n))
@@ -55,7 +52,6 @@ app.MapGet("/features", async (HttpContext context, IHttpClientFactory clients, 
     {
         return Results.Json(new { message = "بین ۱ تا ۱۰۰ نام پرچم ارسال کنید." }, statusCode: 400);
     }
-
 
     var body = new
     {
@@ -106,13 +102,11 @@ app.MapGet("/features", async (HttpContext context, IHttpClientFactory clients, 
         // The explicit defaults below remain distinguishable from authoritative decisions.
         }
 
-
         if (attempt == 0)
         {
             await Task.Delay(Random.Shared.Next(80, 180), context.RequestAborted);
         }
     }
-
 
     return Results.Json(new { features = names.Select(name => new { name, enabled = false, variant = new { name = "disabled", enabled = false, payload = (object? )null }, reason = "consumer_default" }), fallback = true });
 });

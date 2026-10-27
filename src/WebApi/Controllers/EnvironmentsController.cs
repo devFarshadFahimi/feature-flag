@@ -15,6 +15,7 @@ public class EnvironmentsController(IMediator mediator) : ApiControllerBase(medi
 {
     [HttpPost("{id:guid}/protection")]
     public Task<IActionResult> Protect(Guid id, [FromBody] Application.Features.ChangeRequests.ProtectEnvironmentCommand command, CancellationToken cancellationToken) => id != command.EnvironmentId ? Task.FromResult<IActionResult>(BadRequest(new { Message = "شناسه محیط یکسان نیست." })) : SendAsync(command, cancellationToken);
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEnvironmentCommand command, CancellationToken cancellationToken)
     {

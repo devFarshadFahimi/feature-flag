@@ -41,7 +41,7 @@ public static class FeatureMappingConfig
         return new Dictionary<string, object>
         {
             ["rolloutPercentage"] = src.RolloutPercentage ?? 0,
-            ["stickiness"] = src.Stickiness ?? "default",
+            ["stickiness"] = src.Stickiness ?? Domain.ValueObjects.StrategyParameters.DefaultStickiness,
             ["groupId"] = src.GroupId ?? string.Empty,
             ["userIds"] = src.UserIds,
             ["ipAddresses"] = src.IpAddresses,

@@ -21,7 +21,6 @@ internal class GetAllFeaturesQueryHandler(IApplicationDbContext dbContext, Busin
             query = query.Where(f => f.ProjectId == request.ProjectId.Value);
         }
 
-
         return await query
             .ProjectToType<FeatureResponse>()
             .ToListAsync(cancellationToken);

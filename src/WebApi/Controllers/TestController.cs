@@ -10,8 +10,11 @@ namespace WebApi.Controllers;
 public class TestController(IMediator mediator) : ApiControllerBase(mediator)
 {
     private static readonly ActivitySource ActivitySource = new("MyCompany.MyService");
+
     private static readonly Meter MyMeter = new("MyCompany.MyProduct.MyLibrary", "1.0");
+
     private readonly Counter<int> counter = MyMeter.CreateCounter<int>("Test-counter");
+
     [HttpPost(nameof(Test))]
     [AllowAnonymous]
     public IActionResult Test([FromServices] ILogger<TestController> logger)
@@ -34,7 +37,6 @@ public class TestController(IMediator mediator) : ApiControllerBase(mediator)
                 Console.WriteLine("Saving order to DB...");
             }
         }
-
 
         return Ok(true);
     }

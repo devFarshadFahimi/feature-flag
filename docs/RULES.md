@@ -13,4 +13,9 @@ The root [AGENTS.md](../AGENTS.md) is the entry point and applies to every task.
 9. **Practical Clean Code.** Use [PRINCIPLES.md](PRINCIPLES.md); abstraction must remove a real problem. Prefer focused behavioral verification over tests that reproduce implementation.
 10. **Evidence before completion.** Check actual source/package API, relevant compilation/behavior, contracts and links. Distinguish source inspection, compilation and live runtime evidence. Preserve unrelated changes and never include credentials or token values in documentation.
 
+11. **Focused EF configurations.** Keep `ApplicationDbContext` responsible for database sets, persistence orchestration and registering configurations. Put each entity/aggregate mapping in its own file under `src/Infrastructure/Configurations/`. Keep `OnModelCreating` short; shared model conventions belong beside the configurations.
+12. **Named repeated values.** Use named constants, existing enum values or `nameof` for repeated field names, action names, claim names and other protocol values. Keep constants near their owning feature; avoid a global collection of unrelated strings.
+13. **Explain critical methods.** Add a brief summary above methods with important authorization, transaction, caching, evaluation or scheduling behavior. Explain the invariant or purpose; omit comments on obvious methods.
+14. **Readable whitespace.** Separate lookups, guards, subsequent queries, mutations, persistence and returns with a blank line. Use one fluent/LINQ call per line for multi-step chains, expanded control-flow braces and consistent spaces. Apply these rules throughout handwritten code; keep generated artifacts generated.
+
 These rules describe desired development behavior. They do not assert the existing implementation already meets every rule.

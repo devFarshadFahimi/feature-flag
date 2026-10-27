@@ -16,6 +16,11 @@ public static class JwtConfiguration
             .GetSection(JwtSettings.SectionName)
             .Get<JwtSettings>() ?? throw new InvalidOperationException("تنظیمات احراز هویت پیکربندی نشده است.");
 
+        if (Encoding.UTF8.GetByteCount(jwtSettings.SecretKey ?? string.Empty) < 32 || string.IsNullOrWhiteSpace(jwtSettings.Issuer) || string.IsNullOrWhiteSpace(jwtSettings.Audience) || jwtSettings.AccessTokenExpirationMinutes is < 1 or > 1440 || jwtSettings.RefreshTokenExpirationDays is < 1 or > 90)
+        {
+            throw new InvalidOperationException("کلید امضا باید حداقل ۳۲ بایت باشد و صادرکننده، مخاطب و زمان اعتبار توکن‌ها به‌درستی تنظیم شوند.");
+        }
+
         services
             .AddAuthentication(options =>
         {
@@ -44,20 +49,19 @@ public static class JwtConfiguration
             {
                 OnTokenValidated = async context =>
                 {
-                    if (!Guid.TryParse(context.Principal?.FindFirstValue("sub"), out var id))
+                    if (!Guid.TryParse(context.Principal?.FindFirstValue(Application.Common.Services.IdentityClaimNames.Subject), out var id))
                     {
                         context.Fail("هویت کاربر معتبر نیست.");
 
                         return;
                     }
 
-
                     var db = context.HttpContext.RequestServices.GetRequiredService<IApplicationDbContext>();
                     var user = await db.Users
                         .AsNoTracking()
                         .SingleOrDefaultAsync(u => u.Id == id, context.HttpContext.RequestAborted);
 
-                    if (user is null || !user.IsActive || context.Principal?.FindFirstValue("security_version") != user.SecurityVersion.ToString())
+                    if (user is null || !user.IsActive || context.Principal?.FindFirstValue(Application.Common.Services.IdentityClaimNames.SecurityVersion) != user.SecurityVersion.ToString())
                     {
                         context.Fail("نشست کاربر منقضی یا لغو شده است.");
                     }
@@ -79,7 +83,6 @@ public static class JwtConfiguration
                     {
                         context.Response.Headers.Append("Token-Expired", "true");
                     }
-
 
                     return Task.CompletedTask;
                 }

@@ -1,10 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     
     <PropertyGroup>
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     </PropertyGroup>
     
     <ItemGroup>
+        <PackageReference Include="System.Security.Cryptography.Pkcs" />
+        <PackageReference Include="System.Security.Cryptography.Xml" />
 
         <PackageReference Include="BusinessFramework.SourceGenerator">
             <PrivateAssets>all</PrivateAssets>

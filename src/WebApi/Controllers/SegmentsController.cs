@@ -41,7 +41,6 @@ public class SegmentsController(IMediator mediator) : ApiControllerBase(mediator
             });
         }
 
-
         return await SendAsync(command, cancellationToken);
     }
 
@@ -61,7 +60,6 @@ public class SegmentsController(IMediator mediator) : ApiControllerBase(mediator
                 Message = "شناسه بخش مسیر و درخواست یکسان نیست."
             });
         }
-
 
         return await SendAsync(command, cancellationToken);
     }

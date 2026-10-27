@@ -26,7 +26,7 @@ public class AuthController(IMediator mediator) : ApiControllerBase(mediator)
     [Authorize]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
-        var userId = Guid.Parse((User.FindFirst("sub") ?? User.FindFirst(ClaimTypes.NameIdentifier))?.Value ?? throw new UnauthorizedAccessException());
+        var userId = Guid.Parse((User.FindFirst(Application.Common.Services.IdentityClaimNames.Subject) ?? User.FindFirst(ClaimTypes.NameIdentifier))?.Value ?? throw new UnauthorizedAccessException());
 
         return await SendAsync(new LogoutCommand(userId), cancellationToken);
     }
@@ -35,7 +35,7 @@ public class AuthController(IMediator mediator) : ApiControllerBase(mediator)
     [Authorize]
     public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
     {
-        var userId = Guid.Parse((User.FindFirst("sub") ?? User.FindFirst(ClaimTypes.NameIdentifier))?.Value ?? throw new UnauthorizedAccessException());
+        var userId = Guid.Parse((User.FindFirst(Application.Common.Services.IdentityClaimNames.Subject) ?? User.FindFirst(ClaimTypes.NameIdentifier))?.Value ?? throw new UnauthorizedAccessException());
 
         return await SendAsync(new GetCurrentUserQuery(userId), cancellationToken);
     }

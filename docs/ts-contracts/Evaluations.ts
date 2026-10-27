@@ -5,8 +5,12 @@
  * Errors: Persian ProblemDetails; 400 invalid input, 401 invalid/revoked session, 403 no membership,
  * 404 unknown environment, 503 unavailable current authorization/configuration. Never treat 401/403 as false.
  * Body <=64 KiB; appName 1..128; <=100 explicit featureNames; omitted names evaluate <=1,000 flags.
+ * Explicit batches work in larger projects and load only the requested flags and their transitive
+ * prerequisites. Dependencies are not added to the response unless requested. [] returns no flags.
+ * Omitted names in projects above 1,000 flags return 400; send explicit batches instead.
  * Names/keys are ordinal. Properties <=50, each value <=1,024 characters. Runtime ignores currentTime;
  * preview can simulate it. Missing names use defaults[name] or false; permission failures never do.
+ * Weighted variant ranges use ordinal variant-name order, so database row ordering cannot change assignments.
  */
 import type { Uuid, IsoDateTime } from "./Common";
 

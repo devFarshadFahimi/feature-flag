@@ -26,6 +26,7 @@ public class ProjectsController(IMediator mediator, IApplicationDbContext db) : 
 
     [HttpPut("{id:guid}/environments/{environmentId:guid}/approvals")]
     public Task<IActionResult> Approvals(Guid id, Guid environmentId, [FromBody] Application.Features.ChangeRequests.SetApprovalPolicyCommand command, CancellationToken cancellationToken) => id != command.ProjectId || environmentId != command.EnvironmentId ? Task.FromResult<IActionResult>(BadRequest(new { Message = "شناسه پروژه یا محیط یکسان نیست." })) : SendAsync(command, cancellationToken);
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateProjectCommand command, CancellationToken cancellationToken)
     {

@@ -1,6 +1,6 @@
 namespace Application.Features.Projects.Commands.Create;
 
-public record CreateProjectCommand(string Name, string Description, string DefaultStickiness = "default") : ICommandRequest<Guid>;
+public record CreateProjectCommand(string Name, string Description, string DefaultStickiness = Domain.ValueObjects.StrategyParameters.DefaultStickiness) : ICommandRequest<Guid>;
 internal class CreateProjectCommandHandler(IApplicationDbContext dbContext, BusinessMakerFramework.Shared.Abstractions.UserManagement.IUserInfoService actor) : CommandRequestHandler<CreateProjectCommand, Guid>
 {
     public override async Task<Result<Guid>> Handle(CreateProjectCommand request, CancellationToken cancellationToken)

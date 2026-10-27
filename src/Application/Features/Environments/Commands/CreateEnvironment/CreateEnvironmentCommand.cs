@@ -24,7 +24,6 @@ internal class CreateEnvironmentCommandHandler(IApplicationDbContext dbContext) 
             dbContext.FeatureEnvironments.Add(feature.GetEnvironment(environment.Id));
         }
 
-
         await dbContext.SaveChangeAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 

@@ -19,7 +19,7 @@ public class ProjectConfiguration : ApplicationConfiguration<Project>
             .Property(p => p.DefaultStickiness)
             .IsRequired()
             .HasMaxLength(64)
-            .HasDefaultValue("default");
+            .HasDefaultValue(Domain.ValueObjects.StrategyParameters.DefaultStickiness);
         _ = builder
             .Property(p => p.FeatureLimitEnabled)
             .IsRequired();

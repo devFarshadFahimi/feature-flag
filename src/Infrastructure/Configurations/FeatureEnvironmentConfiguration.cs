@@ -33,7 +33,7 @@ public class FeatureEnvironmentConfiguration : ApplicationConfiguration<FeatureE
         _ = builder
             .HasMany(fe => fe.Variants)
             .WithOne()
-            .HasForeignKey("FeatureEnvironmentId")
+            .HasForeignKey(PersistenceNames.FeatureEnvironmentId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -39,6 +39,7 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
         }
     }
 
+    /// <summary>Claims one due request and commits its changes atomically; failed attempts recover in a fresh transaction.</summary>
     private async Task<bool> ExecuteOneAsync(CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
@@ -65,7 +66,6 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
         {
             return false;
         }
-
 
         try
         {
@@ -108,7 +108,6 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
             {
                 await ConfigurationChanges.SuspendSuccessorsAsync(db, request.Id, ct);
             }
-
 
             await db.SaveChangeAsync(ct);
             await recovery.CommitAsync(ct);

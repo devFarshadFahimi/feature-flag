@@ -9,84 +9,109 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
     {
         get; private set;
     }
+
     public Guid? ProjectId
     {
         get; private set;
     }
+
     public string Scope => ProjectId.HasValue ? "Project" : "Global";
+
     public string? RejectionReason
     {
         get; private set;
     }
+
     public int RequiredApprovals { get; private set; } = 1;
+
     public Dictionary<string, long> CapturedRevisions { get; private set; } = [];
+
     public string? ScopeFingerprint
     {
         get; private set;
     }
+
     public Guid? ScheduledBy
     {
         get; private set;
     }
+
     public Guid? PredecessorId
     {
         get; private set;
     }
+
     public Dictionary<string, long> ResultRevisions { get; private set; } = [];
+
     public int Attempts
     {
         get; private set;
     }
+
     public string? FailureReason
     {
         get; private set;
     }
+
     public DateTime? NextAttemptAt
     {
         get; private set;
     }
+
     public Project Project { get; private set; } = null!;
+
     public Guid EnvironmentId
     {
         get; private set;
     }
+
     public Environment Environment
     {
         get; private set;
     }
+
     public Guid CreatedBy
     {
         get; private set;
     }
+
     public ChangeRequestStatus Status
     {
         get; private set;
     }
+
     public string? Title
     {
         get; private set;
     }
+
     public string? Description
     {
         get; private set;
     }
+
     public DateTime? ScheduledAt
     {
         get; private set;
     }
+
     public DateTime CreatedAt
     {
         get; private set;
     }
+
     public DateTime? ReviewedAt
     {
         get; private set;
     }
+
     public Guid? ReviewedBy
     {
         get; private set;
     }
+
     public ICollection<ChangeRequestItem> Items { get; private set; } = [];
+
     public List<Guid> Reviewers { get; private set; } = [];
 
     private ChangeRequest()
@@ -119,7 +144,6 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
             throw new InvalidEntityStateException("درخواست نهایی‌شده قابل ویرایش نیست.");
         }
 
-
         Status = ChangeRequestStatus.Draft;
         Reviewers.Clear();
         ReviewedBy = null;
@@ -149,7 +173,6 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
             throw new InvalidEntityStateException("درخواست تغییر باید حداقل یک قلم داشته باشد.");
         }
 
-
         Status = ChangeRequestStatus.InReview;
     }
 
@@ -170,7 +193,6 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
             throw new InvalidEntityStateException("این کاربر قبلاً درخواست را تأیید کرده است.");
         }
 
-
         Reviewers.Add(reviewerId);
         Status = Reviewers.Count >= RequiredApprovals ? ChangeRequestStatus.Approved : ChangeRequestStatus.InReview;
         ReviewedBy = reviewerId;
@@ -184,7 +206,6 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
             throw new InvalidEntityStateException("فقط درخواست در حال بررسی را می‌توان رد کرد.");
         }
 
-
         Status = ChangeRequestStatus.Rejected;
         RejectionReason = reason;
         ReviewedBy = reviewerId;
@@ -197,7 +218,6 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
         {
             throw new InvalidEntityStateException("فقط درخواست تأییدشده یا زمان‌بندی‌شده قابل اعمال است.");
         }
-
 
         Status = ChangeRequestStatus.Applied;
     }
@@ -214,7 +234,6 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
             throw new ArgumentException("زمان اجرا باید در آینده و بر مبنای زمان جهانی باشد.");
         }
 
-
         ScheduledAt = scheduledAt;
         Status = ChangeRequestStatus.Scheduled;
     }
@@ -225,7 +244,6 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
         {
             throw new InvalidEntityStateException("لغو درخواست اعمال‌شده مجاز نیست.");
         }
-
 
         Status = ChangeRequestStatus.Cancelled;
     }
@@ -261,7 +279,6 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
             throw new InvalidEntityStateException("مرحله پیشین فقط پیش از بررسی قابل تعیین است.");
         }
 
-
         PredecessorId = predecessor;
     }
 
@@ -272,11 +289,11 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
             throw new InvalidEntityStateException("مرحله پیشین پس از تأیید قابل تغییر نیست.");
         }
 
-
         ScheduledBy = actor;
     }
 
     public void RecordResult(Dictionary<string, long> revisions) => ResultRevisions = revisions;
+
     public void Suspend(string reason)
     {
         Status = ChangeRequestStatus.Suspended;

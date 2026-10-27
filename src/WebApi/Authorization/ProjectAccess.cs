@@ -8,6 +8,7 @@ namespace WebApi.Authorization;
 // Resource authorization is checked against database state, independently of cached flag configuration.
 public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
 {
+    /// <summary>Checks current resource permissions and serializes configuration writes with governance execution.</summary>
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         var controller = context.RouteData.Values["controller"]?.ToString();
@@ -19,16 +20,14 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
             return;
         }
 
-
         var ct = context.HttpContext.RequestAborted;
 
-        if (!Guid.TryParse(context.HttpContext.User.FindFirstValue("sub") ?? context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        if (!Guid.TryParse(context.HttpContext.User.FindFirstValue(Application.Common.Services.IdentityClaimNames.Subject) ?? context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
         {
             context.Result = Problem(401, "احراز هویت الزامی است.");
 
             return;
         }
-
 
         var user = await db.Users
             .AsNoTracking()
@@ -40,7 +39,6 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
 
             return;
         }
-
 
         var admin = user.Role is UserRole.Admin or UserRole.RootAdmin;
         var write = !HttpMethods.IsGet(context.HttpContext.Request.Method);
@@ -65,7 +63,6 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
                 return;
             }
 
-
             var globalResult = await next();
 
             if (write && globalResult.Exception is null && (globalResult.Result as ObjectResult)?.StatusCode is not >= 400)
@@ -74,7 +71,6 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
                     .GetRequiredService<Application.Features.Evaluations.IConfigurationSnapshots>()
                     .InvalidateAll();
             }
-
 
             return;
         }
@@ -88,12 +84,10 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
                 return;
             }
 
-
             await next();
 
             return;
         }
-
 
         object? Field(string name) => context.ActionArguments.Values.FirstOrDefault(v => v?.GetType().GetProperty(name) != null)?.GetType().GetProperty(name)?.GetValue(context.ActionArguments.Values.First(v => v?.GetType().GetProperty(name) != null));
         Guid? GuidValue(string name) => context.ActionArguments.TryGetValue(name, out var value) && value is Guid id ? id : Field(char.ToUpperInvariant(name[0]) + name[1..]) is Guid field ? field : null;
@@ -106,7 +100,6 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
 
             return;
         }
-
 
         var featureId = GuidValue("featureId");
         var idValue = GuidValue("id");
@@ -142,7 +135,6 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
                 return;
             }
 
-
             projectId = featureProject;
         }
 
@@ -159,7 +151,6 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
 
                 return;
             }
-
 
             projectId = requestProject.ProjectId;
         }
@@ -188,7 +179,6 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
                     return;
                 }
 
-
                 projectId = segment.ProjectId;
             }
 
@@ -199,7 +189,6 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
                 return;
             }
         }
-
 
         var owner = controller == "Projects" || controller == "ChangeRequests" && action is "Approve" or "Reject" or "Apply" or "Schedule";
 
@@ -278,7 +267,6 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
                 return;
             }
         }
-
 
         var executed = await next();
         var success = executed.Exception is null && (executed.Result as ObjectResult)?.StatusCode is not >= 400;

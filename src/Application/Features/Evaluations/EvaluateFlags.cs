@@ -5,7 +5,7 @@ namespace Application.Features.Evaluations;
 
 public interface IConfigurationSnapshots
 {
-    Task<ConfigurationSnapshot> LoadAsync(Guid projectId, Guid environmentId, bool fresh, CancellationToken cancellationToken);
+    Task<ConfigurationSnapshot> LoadAsync(Guid projectId, Guid environmentId, bool fresh, CancellationToken cancellationToken, IReadOnlyCollection<string>? featureNames = null);
     void InvalidateAll();
 }
 
@@ -13,6 +13,7 @@ public record EvaluateFlagsCommand(Guid ProjectId, Guid EnvironmentId, string Ap
 public record EvaluationResponse(IReadOnlyList<FlagDecision> Features, DateTimeOffset EvaluatedAt, DateTimeOffset SnapshotLoadedAt, bool Stale, int RefreshAfterSeconds, int MaxStaleSeconds);
 internal sealed class EvaluateFlagsHandler(IApplicationDbContext db, IConfigurationSnapshots snapshots, IUserInfoService actor, IOptions<EvaluationSettings> options, Microsoft.Extensions.Logging.ILogger<EvaluateFlagsHandler> logger) : QueryRequestHandler<EvaluateFlagsCommand, EvaluationResponse>
 {
+    /// <summary>Authorizes every call before reading cached rules; telemetry failures never change the decision.</summary>
     public override async Task<EvaluationResponse> Handle(EvaluateFlagsCommand request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.AppName) || request.AppName.Length > 128 || request.Context is null || request.FeatureNames?.Count > 100 || request.FeatureNames?.Any(n => string.IsNullOrEmpty(n) || n.Length > 255) == true || request.Defaults?.Count > 100 || request.Context.Properties?.Count > 50 || request.Context.Properties?.Any(p => p.Key.Length > 128 || p.Value is null || p.Value.Length > 1024) == true || new[]
@@ -33,8 +34,7 @@ internal sealed class EvaluateFlagsHandler(IApplicationDbContext db, IConfigurat
             throw new System.Security.SecurityException("اجازه ارزیابی این پروژه را ندارید.");
         }
 
-
-        var snapshot = await snapshots.LoadAsync(request.ProjectId, request.EnvironmentId, request.Preview, ct);
+        var snapshot = await snapshots.LoadAsync(request.ProjectId, request.EnvironmentId, request.Preview, ct, request.FeatureNames);
         var now = DateTimeOffset.UtcNow;
         var names = request.FeatureNames?.Distinct(StringComparer.Ordinal).ToArray() ?? snapshot.Flags
             .Where(f => !f.Archived)
@@ -61,7 +61,6 @@ internal sealed class EvaluateFlagsHandler(IApplicationDbContext db, IConfigurat
             }
         }
 
-
         return new(results, now, snapshot.LoadedAt, now - snapshot.LoadedAt >= TimeSpan.FromSeconds(options.Value.RefreshSeconds), options.Value.RefreshSeconds, options.Value.MaxStaleSeconds);
     }
 }
@@ -69,5 +68,6 @@ internal sealed class EvaluateFlagsHandler(IApplicationDbContext db, IConfigurat
 public sealed class EvaluationSettings
 {
     public int RefreshSeconds { get; set; } = 5;
+
     public int MaxStaleSeconds { get; set; } = 60;
 }

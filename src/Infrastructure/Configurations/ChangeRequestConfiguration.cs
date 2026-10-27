@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Domain.Aggregates.ChangeRequestAggregate;
 
 namespace Infrastructure.Configurations;
@@ -7,6 +8,24 @@ public class ChangeRequestConfiguration : ApplicationConfiguration<ChangeRequest
     public override void Configure(EntityTypeBuilder<ChangeRequest> builder)
     {
         base.Configure(builder);
+        builder.Ignore(r => r.Scope);
+        builder
+            .Property(r => r.ScopeFingerprint)
+            .HasMaxLength(128);
+        builder
+            .Property(r => r.FailureReason)
+            .HasMaxLength(2000);
+        builder
+            .Property(r => r.RejectionReason)
+            .HasMaxLength(2000);
+        builder
+            .Property(r => r.CapturedRevisions)
+            .HasConversion(v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null), v => JsonSerializer.Deserialize<Dictionary<string, long>>(v, (JsonSerializerOptions?)null) ?? new())
+            .HasColumnType(PersistenceNames.JsonColumnType);
+        builder
+            .Property(r => r.ResultRevisions)
+            .HasConversion(v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null), v => JsonSerializer.Deserialize<Dictionary<string, long>>(v, (JsonSerializerOptions?)null) ?? new())
+            .HasColumnType(PersistenceNames.JsonColumnType);
         // Properties
         _ = builder
             .Property(cr => cr.ProjectId)

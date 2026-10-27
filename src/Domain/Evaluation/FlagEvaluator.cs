@@ -16,9 +16,27 @@ public sealed record FlagDefinition(Guid Id, string Name, bool Enabled, bool Arc
 public sealed record ConfigurationSnapshot(Guid ProjectId, Guid EnvironmentId, bool EnvironmentEnabled, DateTimeOffset LoadedAt, IReadOnlyList<FlagDefinition> Flags, IReadOnlyDictionary<int, IReadOnlyList<Constraint>> Segments);
 public static class FlagEvaluator
 {
+    private const string HashVersion = "v1";
+
+    private const string RolloutPurpose = "rollout";
+
+    private const string VariantPurpose = "variant";
+
+    private const string DefaultStickiness = Domain.ValueObjects.StrategyParameters.DefaultStickiness;
+
+    private const string RandomStickiness = "random";
+
+    private const string UserIdField = "userId";
+
+    private const string SessionIdField = "sessionId";
+
     public static readonly EvaluatedVariant DisabledVariant = new("disabled", false, null);
+
     private static readonly Regex VersionPattern = new(@"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
+
+    /// <summary>Evaluates current context against immutable rules, with cycle/depth guards and per-request prerequisite memoization.</summary>
     public static FlagDecision Evaluate(ConfigurationSnapshot snapshot, FlagDefinition flag, EvaluationContext context, DateTimeOffset now, bool preview = false) => Evaluate(snapshot, flag, context, now, preview, new HashSet<Guid>(), new Dictionary<Guid, (FlagDecision Decision, int Depth)>());
+
     private static FlagDecision Evaluate(ConfigurationSnapshot snapshot, FlagDefinition flag, EvaluationContext context, DateTimeOffset now, bool preview, HashSet<Guid> ancestors, Dictionary<Guid, (FlagDecision Decision, int Depth)> memo)
     {
         if (ancestors.Contains(flag.Id) || ancestors.Count >= 20)
@@ -30,7 +48,6 @@ public static class FlagEvaluator
         {
             return cached.Decision.Enabled && ancestors.Count + cached.Depth > 20 ? new(flag.Name, false, DisabledVariant, "dependency_cycle_or_depth", flag.Revision) : cached.Decision;
         }
-
 
         var decision = EvaluateCore(snapshot, flag, context, now, preview, ancestors, memo);
         var depth = 1 + flag.Prerequisites
@@ -67,7 +84,6 @@ public static class FlagEvaluator
             return Off("dependency_cycle_or_depth");
         }
 
-
         try
         {
             foreach (var dependency in flag.Prerequisites)
@@ -78,7 +94,6 @@ public static class FlagEvaluator
                 {
                     return Off("prerequisite_failed");
                 }
-
 
                 var decision = Evaluate(snapshot, parent, context, now, preview, ancestors, memo);
 
@@ -108,13 +123,11 @@ public static class FlagEvaluator
                     continue;
                 }
 
-
                 var variants = strategy.Variants.Count > 0 ? strategy.Variants : flag.Variants;
                 var variant = SelectVariant(snapshot.ProjectId, flag.Name, strategy.Parameters, variants, context);
 
                 return new(flag.Name, true, variant, "strategy_matched", flag.Revision, preview ? strategy.Id : null);
             }
-
 
             return Off("no_matching_strategy");
         }
@@ -149,7 +162,6 @@ public static class FlagEvaluator
                 throw new ArgumentException("فهرست پیش‌نیازها باید یکتا و دارای حداکثر ۲۰ عضو باشد.");
             }
 
-
             var depth = 1 + parents
                 .Select(p => Depth(p.FeatureId))
                 .DefaultIfEmpty(0)
@@ -161,7 +173,6 @@ public static class FlagEvaluator
             {
                 throw new ArgumentException("عمق پیش‌نیازها بیش از ۲۰ است.");
             }
-
 
             completed[id] = depth;
 
@@ -181,7 +192,6 @@ public static class FlagEvaluator
             return false;
         }
 
-
         var op = constraint.Operator;
 
         if (op is ConstraintOperator.AlwaysTrue or ConstraintOperator.AlwaysFalse)
@@ -189,14 +199,12 @@ public static class FlagEvaluator
             return (op == ConstraintOperator.AlwaysTrue) != constraint.Inverted;
         }
 
-
         var value = ContextValue(context, constraint.ContextName, now);
 
         if (string.IsNullOrEmpty(value))
         {
             return false;
         }
-
 
         var comparison = constraint.CaseInsensitive ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         bool match;
@@ -207,7 +215,6 @@ public static class FlagEvaluator
             {
                 return false;
             }
-
 
             match = op switch
             {
@@ -225,7 +232,6 @@ public static class FlagEvaluator
                 return false;
             }
 
-
             match = op == ConstraintOperator.DateAfter ? actual > expected : actual < expected;
         }
         else if (op is >= ConstraintOperator.SemverEq and <= ConstraintOperator.SemverLte)
@@ -234,7 +240,6 @@ public static class FlagEvaluator
             {
                 return false;
             }
-
 
             match = op switch
             {
@@ -252,7 +257,6 @@ public static class FlagEvaluator
                 return false;
             }
 
-
             match = op switch
             {
                 ConstraintOperator.In => constraint.Values.Any(v => string.Equals(value, v, comparison)),
@@ -263,7 +267,6 @@ public static class FlagEvaluator
                 _ => false
             };
         }
-
 
         return match != constraint.Inverted;
     }
@@ -301,13 +304,14 @@ public static class FlagEvaluator
         }
     }
 
+    /// <summary>Produces a language-independent bucket from length-prefixed UTF-8 fields and a SHA-256 digest.</summary>
     public static int Bucket(Guid projectId, string group, string field, string value, string purpose)
     {
         using var stream = new MemoryStream();
 
         foreach (var part in new[]
         {
-            "v1",
+            HashVersion,
             projectId.ToString("D"),
             group,
             field,
@@ -324,7 +328,6 @@ public static class FlagEvaluator
             stream.Write(length);
             stream.Write(bytes);
         }
-
 
         return (int)(BinaryPrimitives.ReadUInt64BigEndian(SHA256.HashData(stream.ToArray())) % 10000);
     }
@@ -355,10 +358,9 @@ public static class FlagEvaluator
                 return true;
             }
 
-
             var (field, value) = Stickiness(p.Stickiness, context);
 
-            return value is not null && Bucket(projectId, p.GroupId ?? name, field, value, "rollout") < p.RolloutPercentage * 100;
+            return value is not null && Bucket(projectId, p.GroupId ?? name, field, value, RolloutPurpose) < p.RolloutPercentage * 100;
         }
     }
 
@@ -377,11 +379,10 @@ public static class FlagEvaluator
             return DisabledVariant;
         }
 
-
-        var bucket = Bucket(projectId, parameters.GroupId ?? name, field, value, "variant") / 10;
+        var bucket = Bucket(projectId, parameters.GroupId ?? name, field, value, VariantPurpose) / 10;
         var upper = 0;
 
-        foreach (var variant in variants)
+        foreach (var variant in variants.OrderBy(v => v.Name, StringComparer.Ordinal))
         {
             upper += variant.Weight;
 
@@ -391,24 +392,22 @@ public static class FlagEvaluator
             }
         }
 
-
         return DisabledVariant;
     }
 
     private static (string Field, string? Value) Stickiness(string? field, EvaluationContext context)
     {
-        if (field == "random")
+        if (field == RandomStickiness)
         {
-            return ("random", RandomNumberGenerator
+            return (RandomStickiness, RandomNumberGenerator
                 .GetInt32(int.MaxValue)
                 .ToString(CultureInfo.InvariantCulture));
         }
 
-        if (string.IsNullOrEmpty(field) || field == "default")
+        if (string.IsNullOrEmpty(field) || field == DefaultStickiness)
         {
-            field = !string.IsNullOrEmpty(context.UserId) ? "userId" : "sessionId";
+            field = !string.IsNullOrEmpty(context.UserId) ? UserIdField : SessionIdField;
         }
-
 
         var value = ContextValue(context, field, DateTimeOffset.UtcNow);
 
@@ -417,8 +416,8 @@ public static class FlagEvaluator
 
     private static string? ContextValue(EvaluationContext context, string name, DateTimeOffset now) => name switch
     {
-        "userId" => context.UserId,
-        "sessionId" => context.SessionId,
+        UserIdField => context.UserId,
+        SessionIdField => context.SessionId,
         "remoteAddress" => context.RemoteAddress,
         "applicationHostname" => context.ApplicationHostname,
         "currentTime" => now
@@ -426,6 +425,7 @@ public static class FlagEvaluator
         .ToString("O"),
         _ => context.Properties?.GetValueOrDefault(name)
     };
+
     public static bool IpMatches(string? address, string range)
     {
         if (!IPAddress.TryParse(address, out var ip))
@@ -433,14 +433,12 @@ public static class FlagEvaluator
             return false;
         }
 
-
         var parts = range.Split('/');
 
         if (parts.Length > 2 || !IPAddress.TryParse(parts[0], out var network))
         {
             return false;
         }
-
 
         var bytes = ip.GetAddressBytes();
         var networkBytes = network.GetAddressBytes();
@@ -450,14 +448,12 @@ public static class FlagEvaluator
             return false;
         }
 
-
         var bits = bytes.Length * 8;
 
         if (parts.Length == 2 && (!int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out bits) || bits < 0 || bits > bytes.Length * 8))
         {
             return false;
         }
-
 
         for (var index = 0; index < bytes.Length; index++)
         {
@@ -469,11 +465,11 @@ public static class FlagEvaluator
             }
         }
 
-
         return true;
     }
 
     private static bool ParseDate(string value, out DateTimeOffset result) => DateTimeOffset.TryParseExact(value, ["O", "yyyy-MM-dd'T'HH:mm:ssK", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK"], CultureInfo.InvariantCulture, DateTimeStyles.None, out result) && (value.EndsWith('Z') || Regex.IsMatch(value, @"[+-][0-9]{2}:[0-9]{2}$", RegexOptions.CultureInvariant));
+
     private static bool TryCompareVersions(string left, string right, out int order)
     {
         order = 0;
@@ -486,7 +482,6 @@ public static class FlagEvaluator
             return false;
         }
 
-
         for (var i = 1; i <= 3; i++)
         {
             order = CompareNumber(a.Groups[i].Value, b.Groups[i].Value);
@@ -496,7 +491,6 @@ public static class FlagEvaluator
                 break;
             }
         }
-
 
         var apre = a.Groups[4].Value;
         var bpre = b.Groups[4].Value;
@@ -517,7 +511,6 @@ public static class FlagEvaluator
 
             return true;
         }
-
 
         var ap = apre.Split('.');
         var bp = bpre.Split('.');
@@ -543,5 +536,6 @@ public static class FlagEvaluator
     private static bool ValidPrerelease(string value) => value.Length == 0 || value
         .Split('.')
         .All(p => !p.All(char.IsAsciiDigit) || p.Length == 1 || p[0] != '0');
+
     private static int CompareNumber(string a, string b) => a.Length != b.Length ? a.Length.CompareTo(b.Length) : string.CompareOrdinal(a, b);
 }

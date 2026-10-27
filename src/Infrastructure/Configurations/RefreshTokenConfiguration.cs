@@ -7,9 +7,9 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
     public void Configure(EntityTypeBuilder<RefreshToken> builder)
     {
         _ = builder
-            .Property<int>("Id")
+            .Property<int>(PersistenceNames.Id)
             .ValueGeneratedOnAdd();
-        _ = builder.HasKey("Id");
+        _ = builder.HasKey(PersistenceNames.Id);
         _ = builder
             .Property<Guid>("UserId")
             .IsRequired();

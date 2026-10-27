@@ -15,7 +15,6 @@ internal class RefreshTokenCommandHandler(IApplicationDbContext dbContext, IJwtT
             throw new UnauthorizedAccessException("توکن دسترسی معتبر نیست.");
         }
 
-
         var userId = Guid.Parse(principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException("اطلاعات هویتی توکن معتبر نیست."));
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
@@ -26,7 +25,7 @@ internal class RefreshTokenCommandHandler(IApplicationDbContext dbContext, IJwtT
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken) ?? throw new KeyNotFoundException("رکورد درخواستی یافت نشد.");
         var refreshToken = user.RefreshTokens.FirstOrDefault(rt => rt.Token == request.RefreshToken) ?? throw new UnauthorizedAccessException("توکن تمدید معتبر نیست.");
 
-        if (!user.IsActive || principal.FindFirst("security_version")?.Value != user.SecurityVersion.ToString())
+        if (!user.IsActive || principal.FindFirst(Application.Common.Services.IdentityClaimNames.SecurityVersion)?.Value != user.SecurityVersion.ToString())
         {
             throw new UnauthorizedAccessException("حساب کاربری غیرفعال است یا نشست اعتبار ندارد.");
         }

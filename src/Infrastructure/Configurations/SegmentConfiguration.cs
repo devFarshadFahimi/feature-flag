@@ -32,7 +32,7 @@ public class SegmentConfiguration : ApplicationConfiguration<Segment>
         _ = builder
             .HasMany(s => s.Constraints)
             .WithOne()
-            .HasForeignKey("SegmentId")
+            .HasForeignKey(PersistenceNames.SegmentId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -14,7 +14,6 @@ internal class ScheduleChangeRequestCommandHandler(IApplicationDbContext dbConte
             throw new InvalidEntityStateException("مرحله پیشین پس از تأیید قابل تغییر نیست.");
         }
 
-
         var previousId = changeRequest.PredecessorId;
         var visited = new HashSet<Guid>
         {
@@ -29,14 +28,12 @@ internal class ScheduleChangeRequestCommandHandler(IApplicationDbContext dbConte
                 throw new ArgumentException("زنجیره مراحل دارای چرخه یا عمق غیرمجاز است.");
             }
 
-
             var previous = await dbContext.ChangeRequests.SingleOrDefaultAsync(r => r.Id == previousId, cancellationToken) ?? throw new KeyNotFoundException("مرحله قبلی یافت نشد.");
 
             if (previous.ProjectId != changeRequest.ProjectId || previous.EnvironmentId != changeRequest.EnvironmentId || previous.ScheduledAt is null || previous.ScheduledAt >= nextTime || previous.Status is not (ChangeRequestStatus.Scheduled or ChangeRequestStatus.Applied))
             {
                 throw new ArgumentException("مرحله قبلی باید در همین پروژه و محیط و پیش از مرحله فعلی زمان‌بندی شده باشد.");
             }
-
 
             nextTime = previous.ScheduledAt.Value;
             previousId = previous.PredecessorId;

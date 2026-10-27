@@ -10,27 +10,34 @@ public sealed class Environment : AggregateRoot<Guid>
     {
         get; private set;
     }
+
     public string Name
     {
         get; private set;
     }
+
     public EnvironmentType Type
     {
         get; private set;
     }
+
     public bool Enabled
     {
         get; private set;
     }
+
     public int SortOrder
     {
         get; private set;
     }
+
     public bool Protected
     {
         get; private set;
     }
+
     public ICollection<ApiToken> Tokens { get; private set; } = [];
+
     public ICollection<ChangeRequest> ChangeRequests { get; private set; } = [];
 
     private Environment(Guid id, string name, EnvironmentType type, int sortOrder)
@@ -72,7 +79,6 @@ public sealed class Environment : AggregateRoot<Guid>
         {
             throw new ArgumentException("نام محیط باید بین ۱ تا ۱۲۸ نویسه باشد.");
         }
-
 
         Name = name.Trim();
     }

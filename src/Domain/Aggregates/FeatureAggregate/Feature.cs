@@ -9,47 +9,60 @@ public sealed class Feature : AggregateRoot<Guid>
     {
         get; private set;
     }
+
     public string Name
     {
         get; private set;
     }
+
     public FeatureType Type
     {
         get; private set;
     }
+
     public string? Description
     {
         get; private set;
     }
+
     public FeatureLifecycle LifeCycle
     {
         get; private set;
     }
+
     public bool IsStale
     {
         get; private set;
     }
+
     public bool ImpressionDataEnabled
     {
         get; private set;
     }
+
     public DateTime CreatedAt
     {
         get; private set;
     }
+
     public DateTime? ArchivedAt
     {
         get; private set;
     }
+
     public Guid ProjectId
     {
         get; private set;
     }
+
     public Project Project { get; private set; } = null!;
+
     public ICollection<FeatureEnvironment> Environments { get; private set; } = [];
+
     public List<Domain.Evaluation.Prerequisite> Prerequisites { get; private set; } = [];
 
     public void SetPrerequisites(IEnumerable<Domain.Evaluation.Prerequisite> prerequisites) => Prerequisites = prerequisites.ToList();
+
     public List<string> Tags { get; private set; } = [];
 
     private Feature()
@@ -62,7 +75,6 @@ public sealed class Feature : AggregateRoot<Guid>
         {
             throw new ArgumentException("نام یا نوع پرچم معتبر نیست.");
         }
-
 
         var feature = new Feature
         {
@@ -87,13 +99,13 @@ public sealed class Feature : AggregateRoot<Guid>
             throw new InvalidEntityStateException($"محیط {environmentId} قبلاً ایجاد شده است.");
         }
 
-
         var env = FeatureEnvironment.Create(Id, environmentId, defaultVariants);
 
         Environments.Add(env);
     }
 
     public FeatureEnvironment GetEnvironment(Guid environmentId) => Environments.FirstOrDefault(e => e.EnvironmentId == environmentId) ?? throw new InvalidEntityStateException($"محیط {environmentId} یافت نشد.");
+
     public void Update(string? description, FeatureType? type)
     {
         if (description != null)
@@ -105,7 +117,6 @@ public sealed class Feature : AggregateRoot<Guid>
         {
             Type = type.Value;
         }
-
 
         AddEvent(new FeatureUpdatedEvent(Id, ProjectId, Name));
     }
@@ -148,5 +159,26 @@ public sealed class Feature : AggregateRoot<Guid>
     public void RemoveTag(string tag)
     {
         _ = Tags.Remove(tag);
+    }
+
+    /// <summary>Restores configuration through the normal reviewed mutation path without replacing identity or history.</summary>
+    public void RestoreConfiguration(string? description, FeatureType type, FeatureLifecycle lifecycle, bool isStale, bool impressionDataEnabled, IEnumerable<string> tags, IEnumerable<Domain.Evaluation.Prerequisite> prerequisites)
+    {
+        if (!Enum.IsDefined(type) || !Enum.IsDefined(lifecycle) || description?.Length > 2000)
+        {
+            throw new ArgumentException("پیکربندی بازیابی پرچم معتبر نیست.");
+        }
+
+        Description = description;
+        Type = type;
+        LifeCycle = lifecycle;
+        ArchivedAt = lifecycle == FeatureLifecycle.Archived ? ArchivedAt ?? DateTime.UtcNow : null;
+        IsStale = isStale;
+        ImpressionDataEnabled = impressionDataEnabled;
+        Tags = tags
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        SetPrerequisites(prerequisites);
+        AddEvent(new FeatureUpdatedEvent(Id, ProjectId, Name));
     }
 }

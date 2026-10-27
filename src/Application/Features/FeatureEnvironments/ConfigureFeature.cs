@@ -19,6 +19,7 @@ public static class FeatureConfiguration
         .Include(e => e.Variants)
         .Include(e => e.Feature)
         .SingleOrDefaultAsync(e => e.FeatureId == featureId && e.EnvironmentId == environmentId, ct) ?? throw new KeyNotFoundException("ارتباط پرچم و محیط یافت نشد.");
+
     public static void RequireRevision(long expected, long actual)
     {
         if (expected != actual)
@@ -27,6 +28,7 @@ public static class FeatureConfiguration
         }
     }
 
+    /// <summary>Validates and replaces one strategy while touching the environment revision used by direct writes and approvals.</summary>
     public static async Task<Guid> ConfigureAsync(IApplicationDbContext db, FeatureEnvironment environment, ConfigureStrategyCommand input, CancellationToken ct, bool validateOnly = false)
     {
         RequireRevision(input.ExpectedRevision, environment.Revision);
@@ -41,11 +43,10 @@ public static class FeatureConfiguration
             throw new ArgumentException("نوع، ترتیب یا پارامترهای راهبرد معتبر نیست.");
         }
 
-
         var parameters = input.Type switch
         {
             StrategyType.Default => StrategyParameters.CreateDefault(),
-            StrategyType.GradualRollout or StrategyType.FlexibleRollout => StrategyParameters.CreateGradualRollout(input.RolloutPercentage ?? throw new ArgumentException("درصد انتشار الزامی است."), input.Stickiness ?? "default", input.GroupId),
+            StrategyType.GradualRollout or StrategyType.FlexibleRollout => StrategyParameters.CreateGradualRollout(input.RolloutPercentage ?? throw new ArgumentException("درصد انتشار الزامی است."), input.Stickiness ?? Domain.ValueObjects.StrategyParameters.DefaultStickiness, input.GroupId),
             StrategyType.UserWithId => StrategyParameters.CreateUserIds(input.UserIds ?? []),
             StrategyType.RemoteAddress => StrategyParameters.CreateRemoteAddress(input.IpAddresses ?? []),
             StrategyType.ApplicationHost => StrategyParameters.CreateApplicationHost(input.ApplicationNames ?? []),
@@ -69,7 +70,6 @@ public static class FeatureConfiguration
             throw new ArgumentException("مقدار پارامتر راهبرد معتبر نیست.");
         }
 
-
         var segments = (input.SegmentIds ?? [])
             .Distinct()
             .ToArray();
@@ -78,7 +78,6 @@ public static class FeatureConfiguration
         {
             throw new ArgumentException("بخش انتخاب‌شده یافت نشد یا متعلق به پروژه دیگری است.");
         }
-
 
         var constraints = (input.Constraints ?? [])
             .Select(c => Constraint.Create(c.ContextName, c.Operator, c.Values, c.Inverted, c.CaseInsensitive))
@@ -104,7 +103,6 @@ public static class FeatureConfiguration
             return input.StrategyId ?? Guid.Empty;
         }
 
-
         FeatureStrategy strategy;
 
         if (input.StrategyId.HasValue)
@@ -116,8 +114,8 @@ public static class FeatureConfiguration
                 throw new ArgumentException("برای تغییر نوع، راهبرد جدید ایجاد کنید.");
             }
 
-
             strategy.UpdateParameters(parameters);
+            db.StrategyConstraints.RemoveRange(strategy.Constraints);
             strategy.Constraints.Clear();
             strategy.Constraints.AddRange(constraints);
             strategy.SegmentIds.Clear();
@@ -129,9 +127,9 @@ public static class FeatureConfiguration
             db.FeatureStrategies.Add(strategy);
         }
 
-
         strategy.UpdateSortOrder(input.SortOrder);
         strategy.SetEnabled(input.Enabled);
+        db.FeatureVariants.RemoveRange(strategy.Variants);
         strategy.SetVariants(variants);
         // Touch the aggregate even when only a child changed, so optimistic concurrency covers the whole configuration.
         environment.ConfigurationChanged();
@@ -168,7 +166,6 @@ internal sealed class ReorderStrategiesHandler(IApplicationDbContext db) : Comma
             throw new ArgumentException("فهرست ترتیب راهبردها کامل و یکتا نیست.");
         }
 
-
         for (var i = 0; i < request.StrategyIds.Count; i++)
         {
             environment.Strategies
@@ -203,7 +200,6 @@ internal sealed class SetPrerequisitesHandler(IApplicationDbContext db) : Comman
         {
             throw new ArgumentException("پیش‌نیازهای پرچم معتبر نیستند.");
         }
-
 
         feature.SetPrerequisites(request.Prerequisites);
         FlagEvaluator.ValidatePrerequisites(flags.ToDictionary(f => f.Id, f => (IReadOnlyList<Prerequisite>)f.Prerequisites));

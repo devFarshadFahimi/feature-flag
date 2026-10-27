@@ -19,7 +19,7 @@ public class ChangeRequestsController(IMediator mediator) : ApiControllerBase(me
     {
         return await SendAsync(command with
         {
-            CreatedBy = Guid.Parse(User.FindFirst("sub")!.Value)
+            CreatedBy = Guid.Parse(User.FindFirst(Application.Common.Services.IdentityClaimNames.Subject)!.Value)
         }, cancellationToken);
     }
 
@@ -44,6 +44,12 @@ public class ChangeRequestsController(IMediator mediator) : ApiControllerBase(me
         }) : await SendAsync(command, cancellationToken);
     }
 
+    [HttpGet("{id:guid}/preview")]
+    public async Task<IActionResult> Preview(Guid id, CancellationToken cancellationToken)
+    {
+        return await SendAsync(new Application.Features.ChangeRequests.PreviewChangeRequestQuery(id), cancellationToken);
+    }
+
     [HttpPost("{id:guid}/submit")]
     public async Task<IActionResult> SubmitForReview(Guid id, CancellationToken cancellationToken)
     {
@@ -58,7 +64,7 @@ public class ChangeRequestsController(IMediator mediator) : ApiControllerBase(me
             Message = "شناسه مسیر و درخواست یکسان نیست."
         }) : await SendAsync(command with
         {
-            ReviewerId = Guid.Parse(User.FindFirst("sub")!.Value)
+            ReviewerId = Guid.Parse(User.FindFirst(Application.Common.Services.IdentityClaimNames.Subject)!.Value)
         }, cancellationToken);
     }
 
@@ -70,7 +76,7 @@ public class ChangeRequestsController(IMediator mediator) : ApiControllerBase(me
             Message = "شناسه مسیر و درخواست یکسان نیست."
         }) : await SendAsync(command with
         {
-            ReviewerId = Guid.Parse(User.FindFirst("sub")!.Value)
+            ReviewerId = Guid.Parse(User.FindFirst(Application.Common.Services.IdentityClaimNames.Subject)!.Value)
         }, cancellationToken);
     }
 

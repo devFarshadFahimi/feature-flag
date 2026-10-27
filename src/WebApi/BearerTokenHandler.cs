@@ -3,6 +3,7 @@ namespace WebApi;
 public class BearerTokenHandler : DelegatingHandler
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
+
     public BearerTokenHandler(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor;
@@ -20,10 +21,8 @@ public class BearerTokenHandler : DelegatingHandler
                 token = "Bearer " + token;
             }
 
-
             request.Headers.Add("Authorization", token);
         }
-
 
         return base.SendAsync(request, cancellationToken);
     }

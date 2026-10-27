@@ -29,7 +29,6 @@ internal class DeactivateUserCommandHandler(IApplicationDbContext dbContext, Bus
             throw new InvalidEntityStateException("حذف یا غیرفعال‌سازی آخرین مدیر ریشه مجاز نیست.");
         }
 
-
         user.Deactivate();
 
         await dbContext.SaveChangeAsync(cancellationToken);

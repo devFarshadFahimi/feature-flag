@@ -4,7 +4,8 @@ namespace Application.Common.Services;
 
 public static class CurrentActor
 {
-    public static Guid Id(this IUserInfoService actor) => Guid.TryParse(actor.GetClaim("sub") ?? actor.GetClaim(System.Security.Claims.ClaimTypes.NameIdentifier), out var id) ? id : throw new UnauthorizedAccessException("هویت کاربر معتبر نیست.");
+    public static Guid Id(this IUserInfoService actor) => Guid.TryParse(actor.GetClaim(Application.Common.Services.IdentityClaimNames.Subject) ?? actor.GetClaim(System.Security.Claims.ClaimTypes.NameIdentifier), out var id) ? id : throw new UnauthorizedAccessException("هویت کاربر معتبر نیست.");
+
     public static IQueryable<Project> VisibleProjects(this IApplicationDbContext db, IUserInfoService actor)
     {
         var id = actor.Id();

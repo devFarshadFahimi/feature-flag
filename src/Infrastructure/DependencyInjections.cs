@@ -17,9 +17,16 @@ public static class DependencyInjections
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("رشته اتصال پایگاه داده پیکربندی نشده است.");
+        }
+
         _ = services.AddDbContext<ApplicationDbContext>((p, options) =>
         {
-            _ = options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"));
+            _ = options.UseNpgsql(connectionString);
             _ = options.AddInterceptors(p.GetRequiredService<AddAuditDataInterceptor>());
             _ = options.EnableDetailedErrors(true);
         });

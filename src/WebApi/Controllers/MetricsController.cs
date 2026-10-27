@@ -10,6 +10,7 @@ public sealed class MetricsController(IMediator mediator, IApplicationDbContext 
     [HttpPost("impressions")]
     [RequestSizeLimit(65536)]
     public Task<IActionResult> Report([FromBody] ReportImpressionsCommand command, CancellationToken cancellationToken) => SendAsync(command, cancellationToken);
+
     [HttpGet]
     public async Task<IActionResult> Get(Guid projectId, Guid environmentId, DateTime from, DateTime to, string? featureName = null, string? appName = null, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default)
     {
@@ -20,7 +21,6 @@ public sealed class MetricsController(IMediator mediator, IApplicationDbContext 
                 Message = "بازه زمانی یا صفحه‌بندی معتبر نیست."
             });
         }
-
 
         var query = db.FlagUsage
             .AsNoTracking()
@@ -35,7 +35,6 @@ public sealed class MetricsController(IMediator mediator, IApplicationDbContext 
         {
             query = query.Where(u => u.AppName == appName);
         }
-
 
         return Ok(await query
             .OrderBy(u => u.Hour)
@@ -59,7 +58,6 @@ public sealed class MetricsController(IMediator mediator, IApplicationDbContext 
                 Message = "صفحه‌بندی معتبر نیست."
             });
         }
-
 
         return Ok(await db.FlagUsage
             .AsNoTracking()

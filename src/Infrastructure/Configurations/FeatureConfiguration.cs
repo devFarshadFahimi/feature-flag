@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Domain.Aggregates.FeatureAggregate;
 
 namespace Infrastructure.Configurations;
@@ -7,6 +8,10 @@ public class FeatureConfiguration : ApplicationConfiguration<Feature>
     public override void Configure(EntityTypeBuilder<Feature> builder)
     {
         base.Configure(builder);
+        builder
+            .Property(f => f.Prerequisites)
+            .HasConversion(v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null), v => JsonSerializer.Deserialize<List<Domain.Evaluation.Prerequisite>>(v, (JsonSerializerOptions?)null) ?? new())
+            .HasColumnType(PersistenceNames.JsonColumnType).Metadata.SetValueComparer(new JsonValueComparer<List<Domain.Evaluation.Prerequisite>>());
         // Properties
         _ = builder
             .Property(f => f.ProjectId)
@@ -58,7 +63,7 @@ public class FeatureConfiguration : ApplicationConfiguration<Feature>
         //        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
         //        v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(
         //            v, (System.Text.Json.JsonSerializerOptions?)null) ?? new())
-        //    .HasColumnType("jsonb");
+        //    .HasColumnType(PersistenceNames.JsonColumnType);
         // Relationships
         _ = builder
             .HasMany(f => f.Environments)

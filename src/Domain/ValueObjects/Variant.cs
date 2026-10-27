@@ -8,18 +8,22 @@ public sealed class Variant : BaseValueObject<Variant>
     {
         get;
     }
+
     public int Weight
     {
         get;
     }
+
     public string? Stickiness
     {
         get;
     }
+
     public Dictionary<string, object> Payload
     {
         get;
     }
+
     public bool IsDefault
     {
         get;
@@ -37,7 +41,6 @@ public sealed class Variant : BaseValueObject<Variant>
             throw new ArgumentException("وزن باید بین صفر و ۱۰۰۰ باشد.");
         }
 
-
         Name = name;
         Weight = weight;
         Stickiness = stickiness;
@@ -47,12 +50,12 @@ public sealed class Variant : BaseValueObject<Variant>
             throw new ArgumentException("اندازه داده گونه بیش از حد مجاز است.");
         }
 
-
         Payload = new Dictionary<string, object>(payload);
         IsDefault = isDefault;
     }
 
     public static Variant Create(string name, int weight, Dictionary<string, object>? payload = null, string? stickiness = null, bool isDefault = false) => new(name, weight, stickiness, payload ?? [], isDefault);
+
     public static void ValidateSet(IReadOnlyList<Variant> variants)
     {
         if (variants.Count == 0)

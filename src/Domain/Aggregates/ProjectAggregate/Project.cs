@@ -11,28 +11,36 @@ public sealed class Project : AggregateRoot<Guid>
     {
         get; private set;
     }
+
     public string Name
     {
         get; private set;
     }
+
     public string Description
     {
         get; private set;
     }
+
     public string DefaultStickiness
     {
         get; private set;
     }
+
     public bool FeatureLimitEnabled
     {
         get; private set;
     }
+
     public int? FeatureLimit
     {
         get; private set;
     }
+
     public ICollection<ChangeRequest> ChangeRequests { get; private set; } = [];
+
     public ICollection<Feature> Features { get; private set; } = [];
+
     public ICollection<ProjectMember> Members { get; private set; } = [];
 
     private Project(Guid id, string name, string description, string defaultStickiness)
@@ -43,7 +51,7 @@ public sealed class Project : AggregateRoot<Guid>
         DefaultStickiness = defaultStickiness;
     }
 
-    public static Project Create(string name, string description, string defaultStickiness = "default")
+    public static Project Create(string name, string description, string defaultStickiness = Domain.ValueObjects.StrategyParameters.DefaultStickiness)
     {
         var project = new Project(Guid.NewGuid(), name, description, defaultStickiness);
 
@@ -71,7 +79,6 @@ public sealed class Project : AggregateRoot<Guid>
             throw new InvalidEntityStateException($"پرچم «{featureName}» در پروژه موجود است.");
         }
 
-
         var feature = Feature.Create(Id, featureName, type, description);
 
         Features.Add(feature);
@@ -93,7 +100,6 @@ public sealed class Project : AggregateRoot<Guid>
         {
             throw new InvalidEntityStateException($"کاربر {userId} قبلاً عضو شده است.");
         }
-
 
         Members.Add(new ProjectMember(userId, role));
     }

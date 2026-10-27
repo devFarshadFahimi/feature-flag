@@ -57,7 +57,6 @@ internal sealed class ReportImpressionsHandler(IApplicationDbContext db) : Comma
             throw new KeyNotFoundException("محیط یافت نشد.");
         }
 
-
         var names = request.Counts
             .Select(c => c.FeatureName)
             .Distinct()
@@ -67,7 +66,6 @@ internal sealed class ReportImpressionsHandler(IApplicationDbContext db) : Comma
         {
             throw new ArgumentException("پرچم آمار باید متعلق به همین پروژه باشد.");
         }
-
 
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var now = DateTime.UtcNow;
@@ -80,7 +78,6 @@ internal sealed class ReportImpressionsHandler(IApplicationDbContext db) : Comma
         {
             await FlagMetrics.RecordAsync(db, request.ProjectId, request.EnvironmentId, request.AppName, request.Counts, true, ct);
         }
-
 
         await transaction.CommitAsync(ct);
 

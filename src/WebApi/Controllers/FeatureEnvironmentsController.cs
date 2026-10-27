@@ -21,7 +21,6 @@ public class FeatureEnvironmentsController(IMediator mediator) : ApiControllerBa
             });
         }
 
-
         return await SendAsync(command, cancellationToken);
     }
 
@@ -35,7 +34,6 @@ public class FeatureEnvironmentsController(IMediator mediator) : ApiControllerBa
                 Message = "شناسه پرچم یا محیط یکسان نیست."
             });
         }
-
 
         return await SendAsync(command, cancellationToken);
     }

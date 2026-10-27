@@ -6,38 +6,51 @@ public sealed class FeatureStrategy : Entity<Guid>
     {
         get; private set;
     }
+
     public StrategyType Type
     {
         get; private set;
     }
+
     public StrategyParameters Parameters
     {
         get; private set;
     }
+
     public bool Enabled { get; private set; } = true;
 
     public void SetEnabled(bool enabled) => Enabled = enabled;
+
     public int SortOrder
     {
         get; private set;
     }
+
     public Guid EnvironmentId
     {
         get; private set;
     }
+
     public Environment Environment { get; set; } = null!;
+
     public Guid FeatureEnvironmentId
     {
         get; set;
     }
+
     public FeatureEnvironment FeatureEnvironment { get; set; } = null!;
+
     public Guid FeatureId
     {
         get; private set;
     }
+
     public Feature Feature { get; set; } = null!;
+
     public List<Constraint> Constraints { get; private set; } = [];
+
     public List<int> SegmentIds { get; private set; } = [];
+
     public ICollection<Variant> Variants { get; private set; } = [];
 
     private FeatureStrategy()
@@ -65,7 +78,6 @@ public sealed class FeatureStrategy : Entity<Guid>
             strategy.SegmentIds.AddRange(segmentIds);
         }
 
-
         return strategy;
     }
 
@@ -85,7 +97,6 @@ public sealed class FeatureStrategy : Entity<Guid>
         {
             throw new ArgumentOutOfRangeException(nameof(index), "شماره قید معتبر نیست.");
         }
-
 
         Constraints.RemoveAt(index);
     }

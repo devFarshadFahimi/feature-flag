@@ -1,0 +1,40 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Configure private package access
+        shell: bash
+        env:
+          NUGET_CONFIG: ${{ secrets.NUGET_CONFIG }}
+        run: |
+          test -n "$NUGET_CONFIG" || { echo '::error::NUGET_CONFIG secret is required for the private package feed'; exit 1; }
+          printf '%s' "$NUGET_CONFIG" > "$RUNNER_TEMP/feature-flag.nuget.config"
+          chmod 600 "$RUNNER_TEMP/feature-flag.nuget.config"
+      - name: Restore
+        run: dotnet restore feature-flag.sln --configfile "$RUNNER_TEMP/feature-flag.nuget.config"
+      - name: Release build
+        run: dotnet build feature-flag.sln -c Release --no-restore
+      - name: Build backend example
+        run: dotnet build examples/BackendConsumer/BackendConsumer.csproj -c Release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate TypeScript contracts
+        run: npx --yes --package typescript@7.0.2 tsc --noEmit --strict --verbatimModuleSyntax --target ES2020 --module ESNext docs/ts-contracts/*.ts examples/*.ts
+      - name: Remove package credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/feature-flag.nuget.config"

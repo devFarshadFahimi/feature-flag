@@ -12,7 +12,6 @@ internal class GetAllApiTokensQueryHandler(IApplicationDbContext dbContext) : Qu
             query = query.Where(t => t.EnvironmentId == request.EnvironmentId.Value);
         }
 
-
         return await query
             .ProjectToType<ApiTokenResponse>()
             .ToListAsync(cancellationToken);

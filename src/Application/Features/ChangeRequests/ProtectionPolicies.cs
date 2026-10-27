@@ -18,7 +18,6 @@ internal sealed class SetApprovalPolicyHandler(IApplicationDbContext db) : Comma
             throw new KeyNotFoundException("محیط یافت نشد.");
         }
 
-
         var policy = await db.ProjectEnvironmentPolicies.SingleOrDefaultAsync(p => p.ProjectId == request.ProjectId && p.EnvironmentId == request.EnvironmentId, ct);
 
         FeatureConfiguration.RequireRevision(request.ExpectedRevision, policy?.Revision ?? 0);
@@ -37,7 +36,6 @@ internal sealed class SetApprovalPolicyHandler(IApplicationDbContext db) : Comma
             };
             db.ProjectEnvironmentPolicies.Add(policy);
         }
-
 
         policy.Enabled = request.Enabled;
         policy.RequiredApprovals = request.RequiredApprovals;

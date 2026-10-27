@@ -6,26 +6,32 @@ public sealed class RefreshToken : Entity<int>
     {
         get; private set;
     }
+
     public string Token
     {
         get; private set;
     }
+
     public string JwtId
     {
         get; private set;
     }
+
     public bool IsUsed
     {
         get; private set;
     }
+
     public bool IsRevoked
     {
         get; private set;
     }
+
     public DateTime CreatedAt
     {
         get; private set;
     }
+
     public DateTime ExpiresAt
     {
         get; private set;

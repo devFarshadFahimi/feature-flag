@@ -6,17 +6,21 @@ public sealed class ProjectEnvironmentPolicy
     {
         get; set;
     }
+
     public Guid EnvironmentId
     {
         get; set;
     }
+
     public long Revision
     {
         get; set;
     }
+
     public bool Enabled
     {
         get; set;
     }
+
     public int RequiredApprovals { get; set; } = 1;
 }

@@ -22,10 +22,12 @@ public class FilterCriteria
     {
         get; set;
     }
+
     public string? Query
     {
         get; set;
     }
+
     public FilterCondition Condition
     {
         get; set;
@@ -47,26 +49,33 @@ public enum FilterCondition
 public class PaginationParams
 {
     public int PageNumber { get; set; } = 1;
+
     public int PageSize { get; set; } = 10;
+
     public string? SortColumn
     {
         get; set;
     }
+
     public bool SortDescending { get; set; } = false;
+
     public List<FilterCriteria> Filters { get; set; } = [];
 }
 
 public class PaginationResult<T>
 {
     public IEnumerable<T> Data { get; set; } = [];
+
     public int TotalRecords
     {
         get; set;
     }
+
     public int PageSize
     {
         get; set;
     }
+
     public int PageNumber
     {
         get; set;
@@ -152,7 +161,6 @@ public static class PaginationFactory
             query = query.Where(lambda);
         }
 
-
         return query;
     }
 
@@ -173,7 +181,6 @@ public static class PaginationFactory
             }
         }
 
-
         return dtoPropertyName; // Default to the same name if no attribute is found
     }
 
@@ -192,11 +199,9 @@ public static class PaginationFactory
                 throw new InvalidOperationException($"ویژگی «{propName}» در نوع «{propertyType.FullName}» یافت نشد.");
             }
 
-
             property = Expression.Property(property, propertyInfo);
             propertyType = propertyInfo.PropertyType;
         }
-
 
         return (MemberExpression)property;
     }
@@ -233,7 +238,6 @@ public static class PaginationFactory
         {
             throw new InvalidOperationException($"نوع پالایه پشتیبانی نمی‌شود: {propertyType}");
         }
-
 
         return Expression.Constant(value, propertyType);
     }
@@ -272,14 +276,12 @@ public static class PaginationFactory
                 throw new InvalidOperationException($"شرط منطقی پشتیبانی نمی‌شود: {condition}");
             }
 
-
             filterExpression = Expression.Equal(property, constant);
         }
         else
         {
             throw new InvalidOperationException($"نوع پالایه پشتیبانی نمی‌شود: {property.Type.Name}");
         }
-
 
         return filterExpression;
     }

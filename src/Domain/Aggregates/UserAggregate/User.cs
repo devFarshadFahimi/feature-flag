@@ -9,33 +9,41 @@ public sealed class User : AggregateRoot<Guid>
     {
         get; private set;
     }
+
     public string? Name
     {
         get; private set;
     }
+
     public string PasswordHash
     {
         get; private set;
     }
+
     public UserRole Role
     {
         get; private set;
     }
+
     public bool IsActive
     {
         get; private set;
     }
+
     public Guid SecurityVersion { get; private set; } = Guid.NewGuid();
+
     public DateTime CreatedAt
     {
         get; private set;
     }
+
     public DateTime? LastLoginAt
     {
         get; private set;
     }
 
     private readonly List<RefreshToken> _refreshTokens = [];
+
     public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
 
     private User(Guid id, string email, string passwordHash, UserRole role)

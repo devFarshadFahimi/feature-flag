@@ -7,6 +7,9 @@ public class FeatureStrategyConfiguration : ApplicationConfiguration<FeatureStra
     public override void Configure(EntityTypeBuilder<FeatureStrategy> builder)
     {
         base.Configure(builder);
+        builder
+            .Property(s => s.Enabled)
+            .HasDefaultValue(true);
         // Properties
         _ = builder
             .Property(s => s.FeatureId)
@@ -40,29 +43,29 @@ public class FeatureStrategyConfiguration : ApplicationConfiguration<FeatureStra
                 .Property(pp => pp.UserIds)
                 .HasConversion(v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null), v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new())
                 .HasColumnName("UserIds")
-                .HasColumnType("jsonb");
+                .HasColumnType(PersistenceNames.JsonColumnType);
             _ = p
                 .Property(pp => pp.IpAddresses)
                 .HasConversion(v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null), v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new())
                 .HasColumnName("IpAddresses")
-                .HasColumnType("jsonb");
+                .HasColumnType(PersistenceNames.JsonColumnType);
             _ = p
                 .Property(pp => pp.ApplicationNames)
                 .HasConversion(v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null), v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new())
                 .HasColumnName("ApplicationNames")
-                .HasColumnType("jsonb");
+                .HasColumnType(PersistenceNames.JsonColumnType);
             _ = p
                 .Property(pp => pp.CustomParameters)
                 .HasConversion(v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null), v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new())
                 .HasColumnName("CustomParameters")
-                .HasColumnType("jsonb");
+                .HasColumnType(PersistenceNames.JsonColumnType);
         });
         // Segment IDs as JSON array
         _ = builder
             .Property(s => s.SegmentIds)
             .HasConversion(v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null), v => System.Text.Json.JsonSerializer.Deserialize<List<int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new())
             .HasColumnName("SegmentIds")
-            .HasColumnType("jsonb");
+            .HasColumnType(PersistenceNames.JsonColumnType);
         // Indexes
         _ = builder.HasIndex(s => new { s.FeatureId, s.EnvironmentId });
         _ = builder.HasIndex(s => s.Type);
@@ -70,12 +73,12 @@ public class FeatureStrategyConfiguration : ApplicationConfiguration<FeatureStra
         _ = builder
             .HasMany(s => s.Constraints)
             .WithOne()
-            .HasForeignKey("StrategyId")
+            .HasForeignKey(PersistenceNames.StrategyId)
             .OnDelete(DeleteBehavior.Cascade);
         _ = builder
             .HasMany(s => s.Variants)
             .WithOne()
-            .HasForeignKey("StrategyId")
+            .HasForeignKey(PersistenceNames.StrategyId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

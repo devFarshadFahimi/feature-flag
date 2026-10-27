@@ -8,6 +8,7 @@ public sealed class EvaluationsController(IMediator mediator) : ApiControllerBas
 {
     [HttpPost]
     public Task<IActionResult> Evaluate([FromBody] EvaluateFlagsCommand command, CancellationToken cancellationToken) => SendAsync(command with { Preview = false }, cancellationToken);
+
     [HttpPost("preview")]
     public Task<IActionResult> Preview([FromBody] EvaluateFlagsCommand command, CancellationToken cancellationToken) => SendAsync(command with { Preview = true }, cancellationToken);
 }

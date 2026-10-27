@@ -32,7 +32,6 @@ internal class PromoteUserCommandHandler(IApplicationDbContext dbContext, Busine
             throw new ArgumentException("نقش کاربری معتبر نیست.");
         }
 
-
         user.PromoteTo(request.Role);
 
         await dbContext.SaveChangeAsync(cancellationToken);

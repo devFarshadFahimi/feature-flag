@@ -13,6 +13,7 @@ namespace Infrastructure.Services;
 public class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly JwtSettings _jwtSettings;
+
     public JwtTokenGenerator(IOptions<JwtSettings> jwtSettings)
     {
         _jwtSettings = jwtSettings.Value;
@@ -27,7 +28,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new Claim(JwtRegisteredClaimNames.Jti, Guid
             .NewGuid()
             .ToString()),
-            new Claim("security_version", user.SecurityVersion.ToString()),
+            new Claim(Application.Common.Services.IdentityClaimNames.SecurityVersion, user.SecurityVersion.ToString()),
             new Claim(ClaimTypes.Name, user.Name ?? user.Email),
             new Claim(ClaimTypes.Role, user.Role.ToString())
         };

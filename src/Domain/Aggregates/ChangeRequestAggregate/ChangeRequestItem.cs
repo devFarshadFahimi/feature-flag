@@ -6,15 +6,19 @@ public sealed class ChangeRequestItem : Entity<Guid>
     {
         get; private set;
     }
+
     public ChangeRequest ChangeRequest { get; private set; } = null!;
+
     public string Action
     {
         get; private set;
     }
+
     public Guid? FeatureId
     {
         get; private set;
     }
+
     public string? Payload
     {
         get; private set;

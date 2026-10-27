@@ -171,7 +171,7 @@ export interface ChangeRequestsEndpoints {
   };
 }
 
-export type ChangeAction = "setEnabled" | "upsertStrategy" | "deleteStrategy" | "reorderStrategies" | "replaceVariants" | "replaceSegmentConstraints" | "updateFeature" | "setPrerequisites" | "setProjectProtection" | "setGlobalProtection";
+export type ChangeAction = "setEnabled" | "upsertStrategy" | "deleteStrategy" | "reorderStrategies" | "replaceVariants" | "replaceSegmentConstraints" | "updateFeature" | "setPrerequisites" | "setProjectProtection" | "setGlobalProtection" | "restoreFeature" | "restoreEnvironment";
 /** JSON.stringify this object into AddChangeRequestItemCommand.payload. expectedRevision is FE revision
  * for flag environment operations, feature revision for metadata/prerequisites, segment revision for
  * constraints, policy revision for project protection, or environment revision for global protection.
@@ -187,6 +187,39 @@ export interface ChangePayload {
   lifecycle?: import("./Common").FeatureLifecycle | null;
   prerequisites?: import("./Features").Prerequisite[] | null;
   requiredApprovals?: number | null; protectionEnabled?: boolean | null;
+  featureState?: FeatureConfigurationState | null;
+  environmentState?: EnvironmentConfigurationState | null;
+}
+/** Full configuration restore actions require the corresponding state. restoreFeature uses the feature
+ * revision; restoreEnvironment uses the feature/environment revision. Both follow normal approvals.
+ * Restoring an environment recreates strategy IDs and normalizes sortOrder to consecutive ranks,
+ * preserving the snapshot's SortOrder/ID evaluation order; refresh strategy forms after application. */
+export interface FeatureConfigurationState {
+  description: string | null; type: import("./Common").FeatureType;
+  lifecycle: import("./Common").FeatureLifecycle; isStale: boolean;
+  impressionDataEnabled: boolean; tags: string[]; prerequisites: import("./Features").Prerequisite[];
+}
+export interface EnvironmentConfigurationState {
+  enabled: boolean; strategies: import("./FeatureEnvironments").ConfigureStrategyCommand[];
+  variants: import("./FeatureEnvironments").VariantInput[];
+}
+/** GET /api/v1/ChangeRequests/{id}/preview; JWT, same scope/read permissions as get.
+ * 200 before/after per item in application order, with numeric enums. Never persists mutations,
+ * changes status, emits audit rows, or records metrics. Current revisions must match (409 otherwise).
+ * 400 invalid/incomplete payload, 401/403 denied, 404 missing resource, 503 dependency failure.
+ * Feature actions show FeatureConfigurationState; environment/strategy actions show complete
+ * EnvironmentConfigurationState. Segment actions show {id,name,description,constraints}; protection
+ * actions show {protected} or {enabled,requiredApprovals}. Global scope remains Admin/RootAdmin only. */
+export interface ChangeRequestPreview {
+  id: Uuid; requiredApprovals: number;
+  items: Array<{ action: ChangeAction; featureId: Uuid | null; before: unknown; after: unknown }>;
+}
+export interface ChangeRequestsEndpoints {
+  preview: {
+    method: "GET"; path: "/api/v1/ChangeRequests/{id}/preview"; auth: "bearer";
+    pathParams: { id: Uuid }; query: never; body: never;
+    success: ChangeRequestPreview; successStatus: 200;
+  };
 }
 export interface ChangeRequestResponse {
   revision: number; scope: "Project" | "Global"; requiredApprovals: number; reviewers: Uuid[] | null;

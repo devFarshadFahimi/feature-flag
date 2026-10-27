@@ -19,7 +19,6 @@ internal class LoginCommandHandler(IApplicationDbContext dbContext, IPasswordHas
             throw new UnauthorizedAccessException("ایمیل یا گذرواژه نادرست است.");
         }
 
-
         var accessToken = jwtTokenGenerator.GenerateAccessToken(user);
         var refreshTokenValue = jwtTokenGenerator.GenerateRefreshToken();
         var settings = jwtSettings.Value;

@@ -41,7 +41,6 @@ public class UsersController(IMediator mediator) : ApiControllerBase(mediator)
             });
         }
 
-
         return await SendAsync(command, cancellationToken);
     }
 
@@ -67,7 +66,6 @@ public class UsersController(IMediator mediator) : ApiControllerBase(mediator)
                 Message = "شناسه مسیر و درخواست یکسان نیست."
             });
         }
-
 
         return await SendAsync(command, cancellationToken);
     }

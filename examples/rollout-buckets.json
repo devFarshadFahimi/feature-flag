@@ -1,0 +1,66 @@
+[
+  {
+    "projectId": "00000000-0000-0000-0000-000000000001",
+    "group": "checkout",
+    "field": "userId",
+    "value": "42",
+    "purpose": "rollout",
+    "bucket": 6622
+  },
+  {
+    "projectId": "00000000-0000-0000-0000-000000000001",
+    "group": "checkout",
+    "field": "userId",
+    "value": "42",
+    "purpose": "variant",
+    "bucket": 8381
+  },
+  {
+    "projectId": "00112233-4455-6677-8899-aabbccddeeff",
+    "group": "shared-rollout",
+    "field": "sessionId",
+    "value": "session:alpha",
+    "purpose": "rollout",
+    "bucket": 9745
+  },
+  {
+    "projectId": "00112233-4455-6677-8899-aabbccddeeff",
+    "group": "shared-rollout",
+    "field": "sessionId",
+    "value": "session:alpha",
+    "purpose": "variant",
+    "bucket": 3170
+  },
+  {
+    "projectId": "00112233-4455-6677-8899-aabbccddeeff",
+    "group": "پیشنهاد ویژه",
+    "field": "userId",
+    "value": "کاربر-۱۲۳",
+    "purpose": "rollout",
+    "bucket": 7697
+  },
+  {
+    "projectId": "00112233-4455-6677-8899-aabbccddeeff",
+    "group": "پیشنهاد ویژه",
+    "field": "userId",
+    "value": "کاربر-۱۲۳",
+    "purpose": "variant",
+    "bucket": 3571
+  },
+  {
+    "projectId": "00112233-4455-6677-8899-aabbccddeeff",
+    "group": "emoji-🚀",
+    "field": "tenant",
+    "value": "😀:a|b",
+    "purpose": "rollout",
+    "bucket": 639
+  },
+  {
+    "projectId": "00112233-4455-6677-8899-aabbccddeeff",
+    "group": "emoji-🚀",
+    "field": "tenant",
+    "value": "😀:a|b",
+    "purpose": "variant",
+    "bucket": 1777
+  }
+]

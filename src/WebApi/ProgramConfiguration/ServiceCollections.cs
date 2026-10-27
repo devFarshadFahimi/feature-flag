@@ -73,7 +73,6 @@ public static class ServiceCollections
             });
         }
 
-
         return builder;
     }
 

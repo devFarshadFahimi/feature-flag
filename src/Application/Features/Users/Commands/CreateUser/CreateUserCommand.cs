@@ -10,7 +10,6 @@ internal class CreateUserCommandHandler(IApplicationDbContext dbContext, IPasswo
             throw new ArgumentException("ایمیل، گذرواژه یا نقش کاربری معتبر نیست؛ گذرواژه باید حداقل ۱۲ نویسه داشته باشد.");
         }
 
-
         var currentRole = await dbContext.Users
             .Where(u => u.Id == actor.Id() && u.IsActive)
             .Select(u => u.Role)
@@ -20,7 +19,6 @@ internal class CreateUserCommandHandler(IApplicationDbContext dbContext, IPasswo
         {
             throw new System.Security.SecurityException("اجازه ایجاد کاربر با این نقش را ندارید.");
         }
-
 
         var passwordHash = passwordHasher.HashPassword(request.Password);
         var user = User.Create(request.Email, passwordHash, request.Role, request.Name);

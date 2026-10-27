@@ -8,13 +8,16 @@ using Domain.ValueObjects;
 
 namespace Application.Features.ChangeRequests;
 
-public sealed record ChangePayload(int Version, long ExpectedRevision, bool? Enabled = null, ConfigureStrategyCommand? Strategy = null, Guid? StrategyId = null, List<Guid>? StrategyIds = null, List<VariantInput>? Variants = null, int? SegmentId = null, List<ConstraintDto>? Constraints = null, string? Description = null, FeatureType? Type = null, FeatureLifecycle? Lifecycle = null, List<Prerequisite>? Prerequisites = null, int? RequiredApprovals = null, bool? ProtectionEnabled = null);
-public static class ConfigurationChanges
+public sealed record ChangePayload(int Version, long ExpectedRevision, bool? Enabled = null, ConfigureStrategyCommand? Strategy = null, Guid? StrategyId = null, List<Guid>? StrategyIds = null, List<VariantInput>? Variants = null, int? SegmentId = null, List<ConstraintDto>? Constraints = null, string? Description = null, FeatureType? Type = null, FeatureLifecycle? Lifecycle = null, List<Prerequisite>? Prerequisites = null, int? RequiredApprovals = null, bool? ProtectionEnabled = null, FeatureConfigurationState? FeatureState = null, EnvironmentConfigurationState? EnvironmentState = null);
+public static partial class ConfigurationChanges
 {
+    public const string SnapshotField = "Configuration";
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow
     };
+
     public static ChangePayload Parse(ChangeRequestItem item)
     {
         ChangePayload payload;
@@ -28,12 +31,10 @@ public static class ConfigurationChanges
             throw new ArgumentException("ساختار داده قلم تغییر معتبر نیست.");
         }
 
-
-        if (payload.Version != 1 || payload.ExpectedRevision < 0 || item.Action is not ("setEnabled" or "upsertStrategy" or "deleteStrategy" or "reorderStrategies" or "replaceVariants" or "replaceSegmentConstraints" or "updateFeature" or "setPrerequisites" or "setProjectProtection" or "setGlobalProtection"))
+        if (payload.Version != 1 || payload.ExpectedRevision < 0 || item.Action is not (ChangeActionNames.SetEnabled or ChangeActionNames.UpsertStrategy or ChangeActionNames.DeleteStrategy or ChangeActionNames.ReorderStrategies or ChangeActionNames.ReplaceVariants or ChangeActionNames.ReplaceSegmentConstraints or ChangeActionNames.UpdateFeature or ChangeActionNames.SetPrerequisites or ChangeActionNames.SetProjectProtection or ChangeActionNames.SetGlobalProtection or ChangeActionNames.RestoreFeature or ChangeActionNames.RestoreEnvironment))
         {
             throw new ArgumentException("نسخه، عمل یا شماره بازبینی قلم تغییر معتبر نیست.");
         }
-
 
         return payload;
     }
@@ -77,6 +78,7 @@ public static class ConfigurationChanges
         }
     }
 
+    /// <summary>Validates item payloads and captures revisions and protection scopes before review or execution.</summary>
     public static async Task<(Dictionary<string, long> Revisions, string Fingerprint)> InspectAsync(IApplicationDbContext db, ChangeRequest request, CancellationToken ct, bool checkExpected = true)
     {
         var revisions = new Dictionary<string, long>();
@@ -88,14 +90,13 @@ public static class ConfigurationChanges
             throw new ArgumentException("تعداد اقلام تغییر باید بین ۱ تا ۱۰۰ باشد.");
         }
 
-
         foreach (var item in request.Items)
         {
             var p = Parse(item);
             string key;
             long revision;
 
-            if (item.Action == "replaceSegmentConstraints")
+            if (item.Action == ChangeActionNames.ReplaceSegmentConstraints)
             {
                 var segment = await db.Segments
                     .Include(s => s.Constraints)
@@ -110,7 +111,6 @@ public static class ConfigurationChanges
                 {
                     throw new ArgumentException("فهرست قیود الزامی است.");
                 }
-
 
                 foreach (var c in p.Constraints)
                 {
@@ -128,26 +128,24 @@ public static class ConfigurationChanges
                     .OrderBy(r => r.Id)
                     .Select(r => $"{r.Id}:{r.ProjectId}:{r.EnvironmentId}:{r.Revision}:{r.EnvironmentRevision}"));
             }
-            else if (item.Action == "setGlobalProtection")
+            else if (item.Action == ChangeActionNames.SetGlobalProtection)
             {
                 if (request.ProjectId.HasValue || p.ProtectionEnabled is null)
                 {
                     throw new ArgumentException("تغییر حفاظت سراسری باید در درخواست سراسری باشد.");
                 }
 
-
                 var env = await db.Environments.SingleAsync(e => e.Id == request.EnvironmentId, ct);
 
                 key = $"environment:{env.Id}";
                 revision = env.Revision;
             }
-            else if (item.Action == "setProjectProtection")
+            else if (item.Action == ChangeActionNames.SetProjectProtection)
             {
                 if (!request.ProjectId.HasValue || p.ProtectionEnabled is null || p.RequiredApprovals is not (>= 1 and <= 5))
                 {
                     throw new ArgumentException("سیاست تأیید پروژه معتبر نیست.");
                 }
-
 
                 var policy = await db.ProjectEnvironmentPolicies.SingleOrDefaultAsync(x => x.ProjectId == request.ProjectId && x.EnvironmentId == request.EnvironmentId, ct);
 
@@ -161,7 +159,6 @@ public static class ConfigurationChanges
                     throw new ArgumentException("پرچم برای این عمل الزامی است.");
                 }
 
-
                 var env = await FeatureConfiguration.LoadAsync(db, item.FeatureId.Value, request.EnvironmentId, ct);
 
                 if (env.Feature.ProjectId != request.ProjectId)
@@ -169,19 +166,22 @@ public static class ConfigurationChanges
                     throw new ArgumentException("پرچم خارج از پروژه درخواست است.");
                 }
 
-
-                var root = item.Action is "updateFeature" or "setPrerequisites";
+                var root = item.Action is ChangeActionNames.UpdateFeature or ChangeActionNames.SetPrerequisites or ChangeActionNames.RestoreFeature;
 
                 key = root ? $"feature:{env.FeatureId}" : $"featureEnvironment:{env.Id}";
                 revision = root ? env.Feature.Revision : env.Revision;
 
-                if (item.Action == "upsertStrategy" && p.Strategy is not null)
+                if (item.Action is ChangeActionNames.RestoreFeature or ChangeActionNames.RestoreEnvironment)
+                {
+                    await ValidateRestoreAsync(db, env, item.Action, p, ct);
+                }
+
+                if (item.Action == ChangeActionNames.UpsertStrategy && p.Strategy is not null)
                 {
                     if (p.Strategy.ExpectedRevision != p.ExpectedRevision)
                     {
                         throw new ArgumentException("بازبینی راهبرد باید با بازبینی قلم تغییر یکسان باشد.");
                     }
-
 
                     await FeatureConfiguration.ConfigureAsync(db, env, p.Strategy with
                     {
@@ -189,7 +189,7 @@ public static class ConfigurationChanges
                     }, ct, true);
                 }
 
-                if (item.Action == "setPrerequisites" && p.Prerequisites is not null)
+                if (item.Action == ChangeActionNames.SetPrerequisites && p.Prerequisites is not null)
                 {
                     var projectFlags = await db.Features
                         .AsNoTracking()
@@ -202,35 +202,34 @@ public static class ConfigurationChanges
                     FlagEvaluator.ValidatePrerequisites(graph);
                 }
 
-                if (item.Action == "updateFeature" && (p.Type.HasValue && !Enum.IsDefined(p.Type.Value) || p.Lifecycle.HasValue && p.Lifecycle is not (FeatureLifecycle.Active or FeatureLifecycle.Completed or FeatureLifecycle.Archived)))
+                if (item.Action == ChangeActionNames.UpdateFeature && (p.Type.HasValue && !Enum.IsDefined(p.Type.Value) || p.Lifecycle.HasValue && p.Lifecycle is not (FeatureLifecycle.Active or FeatureLifecycle.Completed or FeatureLifecycle.Archived)))
                 {
                     throw new ArgumentException("نوع یا مرحله عمر پرچم معتبر نیست.");
                 }
 
-                if (item.Action == "replaceVariants" && p.StrategyId.HasValue && !env.Strategies.Any(s => s.Id == p.StrategyId))
+                if (item.Action == ChangeActionNames.ReplaceVariants && p.StrategyId.HasValue && !env.Strategies.Any(s => s.Id == p.StrategyId))
                 {
                     throw new KeyNotFoundException("راهبرد گونه‌ها یافت نشد.");
                 }
 
-
                 switch (item.Action)
                 {
-                    case "setEnabled" when p.Enabled is null:
+                    case ChangeActionNames.SetEnabled when p.Enabled is null:
                         throw new ArgumentException("وضعیت پرچم الزامی است.");
-                    case "upsertStrategy" when p.Strategy is null:
+                    case ChangeActionNames.UpsertStrategy when p.Strategy is null:
                         throw new ArgumentException("پیکربندی راهبرد الزامی است.");
-                    case "deleteStrategy" when !env.Strategies.Any(s => s.Id == p.StrategyId):
+                    case ChangeActionNames.DeleteStrategy when !env.Strategies.Any(s => s.Id == p.StrategyId):
                         throw new ArgumentException("راهبرد یافت نشد.");
-                    case "reorderStrategies" when p.StrategyIds is null || p.StrategyIds.Count != env.Strategies.Count || p.StrategyIds
+                    case ChangeActionNames.ReorderStrategies when p.StrategyIds is null || p.StrategyIds.Count != env.Strategies.Count || p.StrategyIds
                     .Distinct()
                     .Count() != p.StrategyIds.Count || env.Strategies.Any(s => !p.StrategyIds.Contains(s.Id)):
                         throw new ArgumentException("ترتیب راهبردها معتبر نیست.");
-                    case "replaceVariants":
+                    case ChangeActionNames.ReplaceVariants:
                         Variant.ValidateSet((p.Variants ?? throw new ArgumentException("گونه‌ها الزامی است."))
                             .Select(v => Variant.Create(v.Name, v.Weight, v.Payload, v.Stickiness))
                             .ToArray());
                         break;
-                    case "setPrerequisites" when p.Prerequisites is null:
+                    case ChangeActionNames.SetPrerequisites when p.Prerequisites is null:
                         throw new ArgumentException("پیش‌نیازها الزامی است.");
                 }
             }
@@ -239,7 +238,6 @@ public static class ConfigurationChanges
             {
                 throw new ArgumentException("بازبینی اقلام یک منبع باید یکسان باشد.");
             }
-
 
             revisions[key] = revision;
             requestedRevisions[key] = p.ExpectedRevision;
@@ -258,7 +256,6 @@ public static class ConfigurationChanges
             affected.Add($"policy:{scope.ProjectId}:{scope.EnvironmentId}:{environment.Revision}:{policy?.Revision ?? 0}");
         }
 
-
         var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('|', affected.Order(StringComparer.Ordinal)))));
 
         return (revisions, fingerprint);
@@ -275,7 +272,7 @@ public static class ConfigurationChanges
         {
             var payload = Parse(item);
 
-            if (item.Action is "updateFeature" or "setPrerequisites")
+            if (item.Action is ChangeActionNames.UpdateFeature or ChangeActionNames.SetPrerequisites or ChangeActionNames.RestoreFeature)
             {
                 var environmentIds = await db.FeatureEnvironments
                     .Where(e => e.FeatureId == item.FeatureId)
@@ -288,7 +285,7 @@ public static class ConfigurationChanges
                 }
             }
 
-            if (item.Action == "replaceSegmentConstraints")
+            if (item.Action == ChangeActionNames.ReplaceSegmentConstraints)
             {
                 // SegmentIds is converted JSON; select reference metadata before matching in memory.
                 var strategies = await SegmentReferences(db, payload.SegmentId!.Value)
@@ -302,7 +299,6 @@ public static class ConfigurationChanges
             }
         }
 
-
         return scopes
             .OrderBy(s => s.Item1)
             .ThenBy(s => s.Item2)
@@ -310,7 +306,7 @@ public static class ConfigurationChanges
             .ToList();
     }
 
-    private static async Task<int> RequiredForRequestAsync(IApplicationDbContext db, ChangeRequest request, CancellationToken ct)
+    internal static async Task<int> RequiredForRequestAsync(IApplicationDbContext db, ChangeRequest request, CancellationToken ct)
     {
         // Global scope uses the separately approved independent-RootAdmin rule.
         if (!request.ProjectId.HasValue)
@@ -318,14 +314,12 @@ public static class ConfigurationChanges
             return 1;
         }
 
-
         var required = 1;
 
         foreach (var scope in await AffectedScopesAsync(db, request, ct))
         {
             required = Math.Max(required, await RequiredAsync(db, scope.ProjectId, scope.EnvironmentId, ct));
         }
-
 
         return required;
     }
@@ -337,6 +331,7 @@ public static class ConfigurationChanges
         request.SubmitForReview();
     }
 
+    /// <summary>Revalidates approvals and resource revisions, then applies all items within the caller's transaction.</summary>
     public static async Task ApplyAsync(IApplicationDbContext db, ChangeRequest request, Guid actorId, CancellationToken ct)
     {
         if (request.Status == ChangeRequestStatus.Applied)
@@ -344,14 +339,12 @@ public static class ConfigurationChanges
             return;
         }
 
-
         await EnsureOwnerAsync(db, request.ProjectId, actorId, !request.ProjectId.HasValue, ct);
 
         if (request.Status is not (ChangeRequestStatus.Approved or ChangeRequestStatus.Scheduled))
         {
             throw new InvalidEntityStateException("درخواست برای اجرا تأیید نشده است.");
         }
-
 
         var required = Math.Max(request.RequiredApprovals, Math.Max(1, await RequiredForRequestAsync(db, request, ct)));
         var approvals = request.Reviewers
@@ -363,7 +356,6 @@ public static class ConfigurationChanges
         {
             throw new InvalidEntityStateException("تعداد تأییدها کافی نیست.");
         }
-
 
         foreach (var reviewer in approvals)
         {
@@ -377,7 +369,6 @@ public static class ConfigurationChanges
             throw new DbUpdateConcurrencyException("محدوده منابع درخواست تغییر کرده است.");
         }
 
-
         var expected = new Dictionary<string, long>(request.CapturedRevisions);
 
         if (request.PredecessorId.HasValue)
@@ -389,13 +380,11 @@ public static class ConfigurationChanges
                 throw new InvalidEntityStateException("مرحله پیشین هنوز با موفقیت اجرا نشده است.");
             }
 
-
             foreach (var predecessorResult in predecessor.ResultRevisions.Where(p => expected.ContainsKey(p.Key)))
             {
                 expected[predecessorResult.Key] = predecessorResult.Value;
             }
         }
-
 
         foreach (var value in current)
         {
@@ -452,7 +441,6 @@ public static class ConfigurationChanges
             };
         }
 
-
         return result;
     }
 
@@ -460,12 +448,13 @@ public static class ConfigurationChanges
     {
         var p = Parse(item);
 
-        if (item.Action == "replaceSegmentConstraints")
+        if (item.Action == ChangeActionNames.ReplaceSegmentConstraints)
         {
             var segment = await db.Segments
                 .Include(s => s.Constraints)
                 .SingleAsync(s => s.Id == p.SegmentId, ct);
 
+            db.SegmentConstraints.RemoveRange(segment.Constraints);
             segment.UpdateConstraints(p.Constraints!
                 .Select(c => Constraint.Create(c.ContextName, c.Operator, c.Values, c.Inverted, c.CaseInsensitive))
                 .ToList());
@@ -473,14 +462,14 @@ public static class ConfigurationChanges
             return;
         }
 
-        if (item.Action == "setGlobalProtection")
+        if (item.Action == ChangeActionNames.SetGlobalProtection)
         {
             (await db.Environments.SingleAsync(e => e.Id == request.EnvironmentId, ct)).SetProtected(p.ProtectionEnabled!.Value);
 
             return;
         }
 
-        if (item.Action == "setProjectProtection")
+        if (item.Action == ChangeActionNames.SetProjectProtection)
         {
             var policy = await db.ProjectEnvironmentPolicies.SingleOrDefaultAsync(x => x.ProjectId == request.ProjectId && x.EnvironmentId == request.EnvironmentId, ct);
 
@@ -494,19 +483,30 @@ public static class ConfigurationChanges
                 db.ProjectEnvironmentPolicies.Add(policy);
             }
 
-
             policy.Enabled = p.ProtectionEnabled!.Value;
             policy.RequiredApprovals = p.RequiredApprovals!.Value;
 
             return;
         }
 
-
         var environment = await FeatureConfiguration.LoadAsync(db, item.FeatureId!.Value, request.EnvironmentId, ct);
 
         switch (item.Action)
         {
-            case "setEnabled":
+            case ChangeActionNames.RestoreFeature:
+                var state = p.FeatureState!;
+                environment.Feature.RestoreConfiguration(state.Description, state.Type, state.Lifecycle, state.IsStale, state.ImpressionDataEnabled, state.Tags, state.Prerequisites);
+
+                var restoredFlags = await db.Features
+                    .Where(f => f.ProjectId == request.ProjectId)
+                    .ToListAsync(ct);
+
+                FlagEvaluator.ValidatePrerequisites(restoredFlags.ToDictionary(f => f.Id, f => (IReadOnlyList<Prerequisite>)f.Prerequisites));
+                break;
+            case ChangeActionNames.RestoreEnvironment:
+                await RestoreEnvironmentAsync(db, environment, p.EnvironmentState!, ct);
+                break;
+            case ChangeActionNames.SetEnabled:
                 if (p.Enabled!.Value)
                 {
                     environment.Enable();
@@ -517,7 +517,7 @@ public static class ConfigurationChanges
                 }
 
                 break;
-            case "upsertStrategy":
+            case ChangeActionNames.UpsertStrategy:
                 await FeatureConfiguration.ConfigureAsync(db, environment, p.Strategy! with
                 {
                     FeatureId = item.FeatureId.Value,
@@ -525,10 +525,10 @@ public static class ConfigurationChanges
                     ExpectedRevision = environment.Revision
                 }, ct);
                 break;
-            case "deleteStrategy":
+            case ChangeActionNames.DeleteStrategy:
                 environment.RemoveStrategy(p.StrategyId!.Value);
                 break;
-            case "reorderStrategies":
+            case ChangeActionNames.ReorderStrategies:
                 for (var i = 0; i < p.StrategyIds!.Count; i++)
                 {
                     environment.Strategies
@@ -537,23 +537,25 @@ public static class ConfigurationChanges
                 }
 
                 break;
-            case "replaceVariants":
+            case ChangeActionNames.ReplaceVariants:
                 var variants = p.Variants!
                     .Select(v => Variant.Create(v.Name, v.Weight, v.Payload, v.Stickiness))
                     .ToList();
                 if (p.StrategyId.HasValue)
                 {
+                    db.FeatureVariants.RemoveRange(environment.Strategies.Single(s => s.Id == p.StrategyId).Variants);
                     environment.Strategies
                         .Single(s => s.Id == p.StrategyId)
                         .SetVariants(variants);
                 }
                 else
                 {
+                    db.FeatureVariants.RemoveRange(environment.Variants);
                     environment.SetVariants(variants);
                 }
 
                 break;
-            case "updateFeature":
+            case ChangeActionNames.UpdateFeature:
                 environment.Feature.Update(p.Description, p.Type);
                 if (p.Lifecycle is not null)
                 {
@@ -574,7 +576,7 @@ public static class ConfigurationChanges
                 }
 
                 break;
-            case "setPrerequisites":
+            case ChangeActionNames.SetPrerequisites:
                 var flags = await db.Features
                     .Where(f => f.ProjectId == request.ProjectId)
                     .ToListAsync(ct);
@@ -607,7 +609,6 @@ public static class ConfigurationChanges
             {
                 continue;
             }
-
 
             var successors = await db.ChangeRequests
                 .Where(r => r.PredecessorId == id && r.Status != ChangeRequestStatus.Applied && r.Status != ChangeRequestStatus.Cancelled)

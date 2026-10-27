@@ -30,7 +30,6 @@ public sealed class ApiProblemHandler(ILogger<ApiProblemHandler> logger) : IExce
             message = exception.Message;
         }
 
-
         context.Response.StatusCode = status;
         await context.Response.WriteAsJsonAsync(new ProblemDetails { Status = status, Title = message }, cancellationToken);
 

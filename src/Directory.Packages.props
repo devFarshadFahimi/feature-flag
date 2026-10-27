@@ -1,8 +1,8 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project>
     <PropertyGroup>
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-        <MicrosoftRelatedPackagesVersion>10.0.8</MicrosoftRelatedPackagesVersion>
+        <MicrosoftRelatedPackagesVersion>10.0.13</MicrosoftRelatedPackagesVersion>
         <BusinessFrameworkPackagesVersion>0.3.22-preview</BusinessFrameworkPackagesVersion>
         <BuildingBlockPackagesVersion>0.3.4-preview</BuildingBlockPackagesVersion>
     </PropertyGroup>
@@ -49,6 +49,8 @@
         <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
         <PackageVersion Include="AspNetCore.HealthChecks.UI.PostgreSQL.Storage" Version="9.0.0" />
 
+        <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+        <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.13" />
         <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />
 
     </ItemGroup>

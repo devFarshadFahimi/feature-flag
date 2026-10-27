@@ -10,7 +10,6 @@ internal class CreateChangeRequestCommandHandler(IApplicationDbContext dbContext
             await ConfigurationChanges.EnsureOwnerAsync(dbContext, null, actor.Id(), false, cancellationToken);
         }
 
-
         var changeRequest = request.ProjectId.HasValue ? ChangeRequest.Create(request.ProjectId.Value, request.EnvironmentId, actor.Id(), request.Title, request.Description) : ChangeRequest.CreateGlobal(request.EnvironmentId, actor.Id(), request.Title, request.Description);
         var previousId = request.PredecessorId;
         var chain = new HashSet<Guid>
@@ -25,14 +24,12 @@ internal class CreateChangeRequestCommandHandler(IApplicationDbContext dbContext
                 throw new ArgumentException("زنجیره مراحل دارای چرخه یا عمق غیرمجاز است.");
             }
 
-
             var previous = await dbContext.ChangeRequests.SingleOrDefaultAsync(r => r.Id == previousId, cancellationToken) ?? throw new KeyNotFoundException("مرحله پیشین یافت نشد.");
 
             if (previous.ProjectId != request.ProjectId || previous.EnvironmentId != request.EnvironmentId)
             {
                 throw new ArgumentException("مرحله پیشین باید متعلق به همین پروژه و محیط باشد.");
             }
-
 
             previousId = previous.PredecessorId;
         }
