@@ -6,6 +6,13 @@
 export type Uuid = string;
 export type IsoDateTime = string;
 
+/** Reusable dropdown option: key is the entity ID; value is its display label.
+ * Wire properties are camelCase even though the C# DTO uses Key and Value. */
+export interface SelectiveDTO<TKey> {
+  key: TKey;
+  value: string;
+}
+
 /** Result/exception failures commonly use ProblemDetails. Not every failure shares this shape.
  * Local validation/auth/exception title/detail/messages are Persian.
  * Check HTTP status before parsing success; status may be omitted from some error bodies.

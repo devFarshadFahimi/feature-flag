@@ -16,6 +16,7 @@ public sealed class ApiProblemHandler(ILogger<ApiProblemHandler> logger) : IExce
             DbUpdateConcurrencyException => (409, "اطلاعات تغییر کرده است؛ دوباره بارگذاری کنید."),
             DbUpdateException => (409, "ذخیره اطلاعات با وضعیت فعلی سازگار نیست."),
             ArgumentException => (400, "اطلاعات درخواست معتبر نیست."),
+            BusinessMakerFramework.Shared.Utilities.Exceptions.ValidationBehaviourException => (400, "اطلاعات درخواست معتبر نیست."),
             InvalidEntityStateException => (409, "عملیات با وضعیت فعلی سازگار نیست."),
             _ => (503, "سرویس موقتاً در دسترس نیست.")
         };

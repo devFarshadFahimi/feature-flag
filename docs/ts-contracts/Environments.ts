@@ -9,7 +9,7 @@
  * JSON property names use camelCase. Nullable fields without defaults remain required in this contract;
  * optional fields have server defaults. Check README.md before implementing a client.
  */
-import type { Uuid, IsoDateTime, ApiTokenType, EnvironmentType } from "./Common";
+import type { Uuid, IsoDateTime, ApiTokenType, EnvironmentType, SelectiveDTO } from "./Common";
 
 /** Source: src/Application/Features/Environments/Commands/CreateApiToken/CreateApiTokenCommand.cs. */
 export interface CreateApiTokenCommand {
@@ -151,4 +151,29 @@ export interface EnvironmentResponse { revision: number; }
 export interface ProtectEnvironmentCommand { environmentId: Uuid; expectedRevision: number; }
 export interface EnvironmentsEndpoints {
   protect: { method: "POST"; path: "/api/v1/Environments/{id}/protection"; auth: "bearer"; pathParams: {id: Uuid}; query: never; body: ProtectEnvironmentCommand; success: void; successStatus: 200 };
+}
+
+/** Environment dropdown: GET /api/v1/Environments/selective; bearer JWT and Admin/RootAdmin required.
+ * No path/query parameters or body. HTTP 200 returns a raw SelectiveDTO<Uuid>[]; [] when none exist.
+ * key is the non-null environment UUID; value is its non-null name. Ordered by sortOrder, database
+ * name collation, then UUID. Includes enabled/disabled and protected environments; no paging/search.
+ * Invalid/revoked/missing session: 401; authenticated non-admin: 403, even with project membership.
+ * Inspect HTTP status before parsing; errors contain Persian messages/ProblemDetails where available.
+ *
+ * Frontend: replace related Environment ID text inputs with a dropdown displaying value and binding key.
+ * Submit key as environmentId (or the destination request's documented ID field), never its label.
+ * Load after authorized login, show loading/empty/error states and require a valid key when mandatory.
+ * Preserve an edit's saved selection only if it is returned; otherwise require a new selection.
+ * Refresh after environment create/rename/delete and on account changes; clear options on logout.
+ * Handle 403 explicitly for non-admin users. Listing an environment does not bypass project permissions,
+ * environment enablement or approval protection on the destination operation.
+ */
+export type EnvironmentSelectiveDTO = SelectiveDTO<Uuid>;
+
+export interface EnvironmentsEndpoints {
+  selective: {
+    method: "GET"; path: "/api/v1/Environments/selective"; auth: "bearer";
+    pathParams: never; query: never; body: never;
+    success: EnvironmentSelectiveDTO[]; successStatus: 200;
+  };
 }

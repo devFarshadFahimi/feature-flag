@@ -7,6 +7,7 @@ using Application.Features.Environments.Commands.RevokeApiToken;
 using Application.Features.Environments.Commands.UpdateEnvironment;
 using Application.Features.Environments.Queries.GetAllEnvironments;
 using Application.Features.Environments.Queries.GetEnvironmentById;
+using Application.Features.Environments.Queries.GetEnvironmentsSelective;
 
 namespace WebApi.Controllers;
 
@@ -32,6 +33,12 @@ public class EnvironmentsController(IMediator mediator) : ApiControllerBase(medi
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         return await SendAsync(new GetEnvironmentByIdQuery(id), cancellationToken);
+    }
+
+    [HttpGet("selective")]
+    public async Task<IActionResult> Selective(CancellationToken cancellationToken)
+    {
+        return await SendAsync(new GetEnvironmentsSelectiveQuery(), cancellationToken);
     }
 
     [HttpPut("{id:guid}")]

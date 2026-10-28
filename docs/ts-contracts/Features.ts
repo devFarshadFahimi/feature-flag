@@ -9,7 +9,7 @@
  * JSON property names use camelCase. Nullable fields without defaults remain required in this contract;
  * optional fields have server defaults. Check README.md before implementing a client.
  */
-import type { Uuid, IsoDateTime, FeatureType } from "./Common";
+import type { Uuid, IsoDateTime, FeatureType, SelectiveDTO } from "./Common";
 
 /** Source: src/Application/Features/Features/Commands/AddFeatureTag/AddFeatureTagCommand.cs. */
 export interface AddFeatureTagCommand {
@@ -196,4 +196,32 @@ export interface FeatureStrategyResponse { revision: number; enabled: boolean; v
 export interface SetPrerequisitesCommand { featureId: Uuid; expectedRevision: number; prerequisites: Prerequisite[]; }
 export interface FeaturesEndpoints {
   prerequisites: { method: "PUT"; path: "/api/v1/Features/{id}/prerequisites"; auth: "bearer"; pathParams: { id: Uuid }; query: never; body: SetPrerequisitesCommand; success: void; successStatus: 200 };
+}
+
+/** Feature dropdown: GET /api/v1/Features/selective?projectId=<UUID>; bearer JWT required.
+ * Optional projectId defaults to null (all visible projects); omit it rather than sending "null".
+ * No path parameters/body. HTTP 200 returns a raw SelectiveDTO<Uuid>[]; [] means no matching features.
+ * key is the non-null feature UUID; value is its non-null name. Ordered by database name collation,
+ * then UUID. No pagination/search; includes archived features and features disabled in an environment.
+ * Admin/RootAdmin see all projects; other active users see only project memberships, including Viewer.
+ * Explicit unknown project: 404; inaccessible project: 403; malformed UUID: 400; invalid session: 401.
+ * Inspect HTTP status before parsing; errors contain Persian messages/ProblemDetails where available.
+ *
+ * Frontend: replace related Feature ID text inputs with a dropdown displaying value and binding key.
+ * For a project-scoped form, load Projects/selective first, then pass the selected projectId here.
+ * Clear the selected feature and reload options whenever the project/account changes; ignore stale
+ * responses from earlier requests. Revalidate saved edit selections against the returned keys.
+ * Submit key as featureId (or the destination request's documented ID field), never the display name.
+ * Evaluation endpoints instead require featureNames; use their documented contract, not these UUIDs.
+ * Show loading/empty/error states and disable required submission without a valid selection.
+ * Reload after feature creation/rename and clear options on logout. Selection does not grant write access.
+ */
+export type FeatureSelectiveDTO = SelectiveDTO<Uuid>;
+
+export interface FeaturesEndpoints {
+  selective: {
+    method: "GET"; path: "/api/v1/Features/selective"; auth: "bearer";
+    pathParams: never; query: { projectId?: Uuid | null }; body: never;
+    success: FeatureSelectiveDTO[]; successStatus: 200;
+  };
 }

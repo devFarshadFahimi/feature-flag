@@ -8,6 +8,7 @@ using Application.Features.Projects.Commands.SetProjectFeatureLimit;
 using Application.Features.Projects.Commands.Update;
 using Application.Features.Projects.Queries.GetAllProjects;
 using Application.Features.Projects.Queries.GetProjectById;
+using Application.Features.Projects.Queries.GetProjectsSelective;
 
 namespace WebApi.Controllers;
 
@@ -43,6 +44,12 @@ public class ProjectsController(IMediator mediator, IApplicationDbContext db) : 
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         return await SendAsync(new GetProjectByIdQuery(id), cancellationToken);
+    }
+
+    [HttpGet("selective")]
+    public async Task<IActionResult> Selective(CancellationToken cancellationToken)
+    {
+        return await SendAsync(new GetProjectsSelectiveQuery(), cancellationToken);
     }
 
     [HttpPut("{id:guid}")]

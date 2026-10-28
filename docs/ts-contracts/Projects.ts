@@ -9,7 +9,7 @@
  * JSON property names use camelCase. Nullable fields without defaults remain required in this contract;
  * optional fields have server defaults. Check README.md before implementing a client.
  */
-import type { Uuid, IsoDateTime, ProjectRole } from "./Common";
+import type { Uuid, IsoDateTime, ProjectRole, SelectiveDTO } from "./Common";
 
 /** Source: src/Application/Features/Projects/Commands/AddProjectMember/AddProjectMemberCommand.cs. */
 export interface AddProjectMemberCommand {
@@ -137,4 +137,31 @@ export interface SetApprovalPolicyCommand { projectId: Uuid; environmentId: Uuid
 export interface ProjectsEndpoints {
   getApprovals: { method: "GET"; path: "/api/v1/Projects/{id}/environments/{environmentId}/approvals"; auth: "bearer"; pathParams: {id: Uuid; environmentId: Uuid}; query: never; body: never; success: ApprovalPolicy; successStatus: 200 };
   setApprovals: { method: "PUT"; path: "/api/v1/Projects/{id}/environments/{environmentId}/approvals"; auth: "bearer"; pathParams: {id: Uuid; environmentId: Uuid}; query: never; body: SetApprovalPolicyCommand; success: void; successStatus: 200 };
+}
+
+/** Project dropdown contract. GET /api/v1/Projects/selective; bearer JWT required.
+ * No path/query parameters or body. HTTP 200 returns a raw array, not a paginated envelope.
+ * Each key is a non-null project UUID; value is its non-null project name.
+ * Sorted by name using the database collation, then UUID; no paging, search or implicit selection.
+ * Admin/RootAdmin see all projects; other active users see only their memberships, including Viewer.
+ * No visible projects returns 200 with []; missing/invalid/revoked sessions return 401.
+ * Inspect HTTP status before parsing success; failures use Persian ProblemDetails where available.
+ *
+ * Frontend implementation: replace free-text Project ID inputs in forms with this dropdown.
+ * Load options after login; display option.value and bind option.key as the selected projectId.
+ * Submit that UUID in the existing create-feature (or other related entity) request, never the label.
+ * Keep the choice required where projectId is required. Disable submission while loading or when
+ * there are no options; provide loading, empty and error states. For edits, preserve the saved key
+ * only if it remains in the returned options; otherwise require an authorized replacement choice.
+ * Reload on account changes and after creating/renaming/deleting projects; clear options on logout.
+ * A listed project does not grant write permission: keep handling 403 from the destination form.
+ */
+export type ProjectSelectiveDTO = SelectiveDTO<Uuid>;
+
+export interface ProjectsEndpoints {
+  selective: {
+    method: "GET"; path: "/api/v1/Projects/selective"; auth: "bearer";
+    pathParams: never; query: never; body: never;
+    success: ProjectSelectiveDTO[]; successStatus: 200;
+  };
 }

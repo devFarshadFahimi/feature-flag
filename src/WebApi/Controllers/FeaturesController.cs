@@ -7,6 +7,7 @@ using Application.Features.Features.Commands.RemoveFeatureTag;
 using Application.Features.Features.Commands.UpdateFeature;
 using Application.Features.Features.Queries.GetAllFeatures;
 using Application.Features.Features.Queries.GetFeatureById;
+using Application.Features.Features.Queries.GetFeaturesSelective;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
@@ -44,6 +45,12 @@ public class FeaturesController(IMediator mediator) : ApiControllerBase(mediator
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         return await SendAsync(new GetFeatureByIdQuery(id), cancellationToken);
+    }
+
+    [HttpGet("selective")]
+    public async Task<IActionResult> Selective([FromQuery] Guid? projectId, CancellationToken cancellationToken)
+    {
+        return await SendAsync(new GetFeaturesSelectiveQuery(projectId), cancellationToken);
     }
 
     [HttpPut("{id:guid}")]
