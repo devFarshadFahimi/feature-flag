@@ -1,6 +1,6 @@
+using Application.Common.Services;
 using BusinessMakerFramework.Endpoint.WebApi.ApiDescriptorSetup;
 using Infrastructure;
-using Application.Common.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.ProgramConfiguration;
@@ -10,8 +10,16 @@ public static class ApplicationBuilder
     public static async Task UseWebApiConfiguration(this WebApplication app)
     {
         // Seed database
-        await app.Services.SeedDatabaseAsync();
-        app.UseExceptionHandler();
+        try
+        {
+            await app.Services.SeedDatabaseAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            throw;
+        }
+        _ = app.UseExceptionHandler();
         app.MapOpenApiAndScalar();
         _ = app.UseHttpsRedirection();
         _ = app.UseCors(p =>
@@ -31,10 +39,10 @@ public static class ApplicationBuilder
         _ = app.UseAuthentication();
         _ = app.UseAuthorization();
         app.UseHealthCheckEndpoints();
-        app
+        _ = app
             .MapGet("/health/live", () => Results.Ok(new { status = "alive" }))
             .AllowAnonymous();
-        app
+        _ = app
             .MapGet("/health/ready", ReadinessAsync)
             .AllowAnonymous();
         _ = app.MapControllers();
