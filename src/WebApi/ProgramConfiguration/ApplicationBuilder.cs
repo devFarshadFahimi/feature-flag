@@ -26,15 +26,16 @@ public static class ApplicationBuilder
         {
             _ = p.AllowAnyHeader();
             _ = p.AllowAnyMethod();
+            _ = p.AllowAnyOrigin();
 
-            var origins = app.Configuration
-                .GetSection("Cors:AllowedOrigins")
-                .Get<string[]>() ?? [];
+            //var origins = app.Configuration
+            //    .GetSection("Cors:AllowedOrigins")
+            //    .Get<string[]>() ?? [];
 
-            if (origins.Length > 0)
-            {
-                _ = p.WithOrigins(origins);
-            }
+            //if (origins.Length > 0)
+            //{
+            //    _ = p.WithOrigins(origins);
+            //}
         });
         _ = app.UseAuthentication();
         _ = app.UseAuthorization();
