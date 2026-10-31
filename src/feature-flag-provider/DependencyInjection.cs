@@ -13,11 +13,14 @@ public static class DependencyInjection
     /// <returns>The HTTP client builder for consumer-specific transport configuration.</returns>
     public static IHttpClientBuilder AddFeatureFlagProvider(this IServiceCollection services, IConfiguration configuration)
     {
+        //services.TryAddSingleton<TimeProvider>(TimeProvider.System);
+
         services
             .AddOptions<FeatureFlagProviderOptions>()
             .Bind(configuration)
             .Validate(options => options.IsValid(), FeatureFlagProvider.InvalidConfigurationMessage)
             .ValidateOnStart();
+        services.AddSingleton(_ => TimeProvider.System);
 
         return services
             .AddHttpClient<FeatureFlagProvider>()

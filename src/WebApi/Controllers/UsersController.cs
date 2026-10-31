@@ -5,7 +5,6 @@ using Application.Features.Users.Commands.PromoteUser;
 using Application.Features.Users.Commands.UpdateUser;
 using Application.Features.Users.Queries.GetAllUsers;
 using Application.Features.Users.Queries.GetUserById;
-using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
 

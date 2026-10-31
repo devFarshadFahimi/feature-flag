@@ -53,13 +53,13 @@ public sealed class FeatureFlagProvider
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_baseUri, _authEndpoint))
         {
-            Content = JsonContent.Create(new { email = _username, _password })
+            Content = JsonContent.Create(new { email = _username, password = _password })
         };
         var token = await SendAsync<TokenResponse>(request, cancellationToken);
 
         if (string.IsNullOrWhiteSpace(token.AccessToken)
             || token.AccessToken.Any(char.IsWhiteSpace)
-            || token.AccessTokenExpiration <= _timeProvider.GetLocalNow())
+            || token.AccessTokenExpiration <= _timeProvider.GetUtcNow())
         {
             throw new HttpRequestException("پاسخ ورود شامل توکن دسترسی معتبر نیست.");
         }
@@ -77,7 +77,7 @@ public sealed class FeatureFlagProvider
     {
         var token = Volatile.Read(ref _session);
 
-        if (token is null || token.AccessTokenExpiration <= _timeProvider.GetLocalNow())
+        if (token is null || token.AccessTokenExpiration <= _timeProvider.GetUtcNow())
         {
             throw new InvalidOperationException("ابتدا توکن دسترسی دریافت کنید؛ توکن فعلی موجود نیست یا منقضی شده است.");
         }
