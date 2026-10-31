@@ -1,7 +1,6 @@
 using System.Reflection;
 using Application.Common.Services;
 using BusinessMakerFramework.Infrastructure.SqlCommand;
-using Domain.Aggregates.ApiTokenAggregate;
 using Domain.Aggregates.ChangeRequestAggregate;
 using Domain.Aggregates.FeatureAggregate;
 using Domain.Aggregates.ProjectAggregate;
@@ -36,7 +35,6 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     // Environments
     public DbSet<Domain.Aggregates.EnvironmentAggregate.Environment> Environments => Set<Domain.Aggregates.EnvironmentAggregate.Environment>();
 
-    public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
     // Segments
     public DbSet<Segment> Segments => Set<Segment>();
 

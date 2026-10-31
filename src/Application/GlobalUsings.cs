@@ -6,7 +6,6 @@ global using BusinessMakerFramework.Application.Common.Contracts;
 global using BusinessMakerFramework.Application.Common.Contracts.Interfaces;
 global using BusinessMakerFramework.Domain.Core.Exceptions;
 global using BusinessMakerFramework.Shared.Utilities.Utilities;
-global using Domain.Aggregates.ApiTokenAggregate;
 global using Domain.Aggregates.ChangeRequestAggregate;
 //global using SystemEnvironment = System.Environment;
 global using Domain.Aggregates.FeatureAggregate;

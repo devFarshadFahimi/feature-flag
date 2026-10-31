@@ -18,69 +18,10 @@ namespace Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("Domain.Aggregates.ApiTokenAggregate.ApiToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BusinessId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("EnvironmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsRevoked")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("LastUsedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("TokenType")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EnvironmentId");
-
-                    b.HasIndex("IsRevoked");
-
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
-
-                    b.HasIndex("TokenType");
-
-                    b.HasIndex("TokenHash", "IsRevoked");
-
-                    b.ToTable("TblApiToken", "App");
-                });
 
             modelBuilder.Entity("Domain.Aggregates.ChangeRequestAggregate.ChangeRequest", b =>
                 {
@@ -954,15 +895,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("TblDataProtectionKey", "Base");
                 });
 
-            modelBuilder.Entity("Domain.Aggregates.ApiTokenAggregate.ApiToken", b =>
-                {
-                    b.HasOne("Domain.Aggregates.EnvironmentAggregate.Environment", null)
-                        .WithMany("Tokens")
-                        .HasForeignKey("EnvironmentId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Domain.Aggregates.ChangeRequestAggregate.ChangeRequest", b =>
                 {
                     b.HasOne("Domain.Aggregates.EnvironmentAggregate.Environment", "Environment")
@@ -1160,8 +1092,6 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Aggregates.EnvironmentAggregate.Environment", b =>
                 {
                     b.Navigation("ChangeRequests");
-
-                    b.Navigation("Tokens");
                 });
 
             modelBuilder.Entity("Domain.Aggregates.FeatureAggregate.Feature", b =>

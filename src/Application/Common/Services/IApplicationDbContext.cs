@@ -56,11 +56,6 @@ public interface IApplicationDbContext
         get;
     }
 
-    DbSet<ApiToken> ApiTokens
-    {
-        get;
-    }
-
     DbSet<Segment> Segments
     {
         get;

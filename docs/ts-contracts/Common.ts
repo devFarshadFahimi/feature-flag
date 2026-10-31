@@ -25,12 +25,6 @@ export interface ProblemDetails {
 /** Existing route/body mismatch responses have this separate shape (HTTP 400). */
 export interface IdMismatchError { message: string; }
 
-export enum ApiTokenType {
-  Client = 0,
-  Admin = 1,
-  Frontend = 2
-}
-
 export enum AuditAction {
   Created = 0,
   Updated = 1,

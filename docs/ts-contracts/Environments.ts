@@ -1,25 +1,14 @@
-/** Environments frontend contract. Baseline: 2026-10-26.
- * All actions require a bearer JWT. Create has numeric type and sortOrder default 0.
- * Update body requires id/name/sortOrder, but the handler currently ignores name. Do not promise rename.
- * CreateToken body environmentId must match route id; return is UUID only, not a usable secret/token.
- * Token lists omit hashes/secrets. No endpoint currently returns an SDK credential value.
- * Revocation currently loads an environment without explicitly including Tokens; verify behavior.
- * There is no Protected setter endpoint despite protected appearing in the response.
- * EF limits: environment name 128 (unique); token name 255.
+/** Environments frontend contract.
+ * All actions require a bearer JWT and Admin/RootAdmin. Create has numeric type and sortOrder default 0.
+ * Update body requires id/name/sortOrder and persists the name and sort order.
+ * Environment responses no longer contain a tokens field. Remove token forms, lists, and create/revoke
+ * requests from clients; environment API-token endpoints have been removed. User JWT login is unchanged.
+ * Protection is managed through the protect operation and the approved change-request workflow.
+ * EF limits: environment name 128 (unique).
  * JSON property names use camelCase. Nullable fields without defaults remain required in this contract;
  * optional fields have server defaults. Check README.md before implementing a client.
  */
-import type { Uuid, IsoDateTime, ApiTokenType, EnvironmentType, SelectiveDTO } from "./Common";
-
-/** Source: src/Application/Features/Environments/Commands/CreateApiToken/CreateApiTokenCommand.cs. */
-export interface CreateApiTokenCommand {
-  environmentId: Uuid;
-  tokenType: ApiTokenType;
-  /** Server default: null. */
-  name?: string | null;
-  /** Server default: null. */
-  expiresAt?: IsoDateTime | null;
-}
+import type { Uuid, EnvironmentType, SelectiveDTO } from "./Common";
 
 /** Source: src/Application/Features/Environments/Commands/CreateEnvironment/CreateEnvironmentCommand.cs. */
 export interface CreateEnvironmentCommand {
@@ -44,12 +33,6 @@ export interface EnableEnvironmentCommand {
   id: Uuid;
 }
 
-/** Source: src/Application/Features/Environments/Commands/RevokeApiToken/RevokeApiTokenCommand.cs. */
-export interface RevokeApiTokenCommand {
-  environmentId: Uuid;
-  tokenId: Uuid;
-}
-
 /** Source: src/Application/Features/Environments/Commands/UpdateEnvironment/UpdateEnvironmentCommand.cs. */
 export interface UpdateEnvironmentCommand {
   id: Uuid;
@@ -70,18 +53,6 @@ export interface EnvironmentResponse {
   enabled: boolean;
   sortOrder: number;
   protected: boolean;
-  tokens: (ApiTokenResponse)[];
-}
-
-/** Source: src/Application/Features/Environments/Queries/GetEnvironmentById/GetEnvironmentByIdQuery.cs. */
-export interface ApiTokenResponse {
-  id: Uuid;
-  tokenType: string;
-  name: string | null;
-  createdAt: IsoDateTime;
-  expiresAt: IsoDateTime | null;
-  lastUsedAt: IsoDateTime | null;
-  isRevoked: boolean;
 }
 
 /** Type-only operation map; never means omit that part of the request.
@@ -129,18 +100,6 @@ export interface EnvironmentsEndpoints {
   disable: {
     method: "POST"; path: "/api/v1/Environments/{id}/disable"; auth: "bearer";
     pathParams: { id: Uuid }; query: never; body: never;
-    success: void; successStatus: 200;
-  };
-  /** POST /api/v1/Environments/{id}/tokens; bearer JWT required. */
-  createToken: {
-    method: "POST"; path: "/api/v1/Environments/{id}/tokens"; auth: "bearer";
-    pathParams: { id: Uuid }; query: never; body: CreateApiTokenCommand;
-    success: Uuid; successStatus: 200;
-  };
-  /** POST /api/v1/Environments/{id}/tokens/{tokenId}/revoke; bearer JWT required. */
-  revokeToken: {
-    method: "POST"; path: "/api/v1/Environments/{id}/tokens/{tokenId}/revoke"; auth: "bearer";
-    pathParams: { id: Uuid; tokenId: Uuid }; query: never; body: never;
     success: void; successStatus: 200;
   };
 }

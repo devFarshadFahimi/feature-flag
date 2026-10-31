@@ -1,4 +1,3 @@
-using Domain.Aggregates.ApiTokenAggregate;
 using Domain.Aggregates.ChangeRequestAggregate;
 using Domain.Aggregates.EnvironmentAggregate.Events;
 
@@ -35,8 +34,6 @@ public sealed class Environment : AggregateRoot<Guid>
     {
         get; private set;
     }
-
-    public ICollection<ApiToken> Tokens { get; private set; } = [];
 
     public ICollection<ChangeRequest> ChangeRequests { get; private set; } = [];
 
@@ -88,22 +85,4 @@ public sealed class Environment : AggregateRoot<Guid>
         Protected = isProtected;
     }
 
-    public ApiToken CreateToken(ApiTokenType tokenType, string? name = null, DateTime? expiresAt = null)
-    {
-        var token = ApiToken.Create(Id, tokenType, Guid
-            .NewGuid()
-            .ToString(), name: name, expiresAt: expiresAt);
-
-        Tokens.Add(token);
-
-        return token;
-    }
-
-    public void RevokeToken(Guid tokenId)
-    {
-        var token = Tokens.FirstOrDefault(t => t.Id == tokenId) ?? throw new InvalidEntityStateException($"توکن {tokenId} یافت نشد.");
-
-        token.Revoke();
-        _ = Tokens.Remove(token);
-    }
 }

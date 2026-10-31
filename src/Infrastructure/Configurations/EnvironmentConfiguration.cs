@@ -34,11 +34,6 @@ public class EnvironmentConfiguration : ApplicationConfiguration<Domain.Aggregat
         _ = builder.HasIndex(e => e.Type);
         _ = builder.HasIndex(e => e.SortOrder);
         _ = builder
-            .HasMany(p => p.Tokens)
-            .WithOne()
-            .HasForeignKey(p => p.EnvironmentId)
-            .OnDelete(DeleteBehavior.NoAction);
-        _ = builder
             .HasMany(p => p.ChangeRequests)
             .WithOne(p => p.Environment)
             .HasForeignKey(p => p.EnvironmentId)

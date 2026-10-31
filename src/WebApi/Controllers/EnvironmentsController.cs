@@ -1,9 +1,7 @@
-using Application.Features.Environments.Commands.CreateApiToken;
 using Application.Features.Environments.Commands.CreateEnvironment;
 using Application.Features.Environments.Commands.DeleteEnvironment;
 using Application.Features.Environments.Commands.DisableEnvironment;
 using Application.Features.Environments.Commands.EnableEnvironment;
-using Application.Features.Environments.Commands.RevokeApiToken;
 using Application.Features.Environments.Commands.UpdateEnvironment;
 using Application.Features.Environments.Queries.GetAllEnvironments;
 using Application.Features.Environments.Queries.GetEnvironmentById;
@@ -68,18 +66,4 @@ public class EnvironmentsController(IMediator mediator) : ApiControllerBase(medi
         return await SendAsync(new DisableEnvironmentCommand(id), cancellationToken);
     }
 
-    [HttpPost("{id:guid}/tokens")]
-    public async Task<IActionResult> CreateToken(Guid id, [FromBody] CreateApiTokenCommand command, CancellationToken cancellationToken)
-    {
-        return id != command.EnvironmentId ? BadRequest(new
-        {
-            Message = "شناسه محیط مسیر و درخواست یکسان نیست."
-        }) : await SendAsync(command, cancellationToken);
-    }
-
-    [HttpPost("{id:guid}/tokens/{tokenId:guid}/revoke")]
-    public async Task<IActionResult> RevokeToken(Guid id, Guid tokenId, CancellationToken cancellationToken)
-    {
-        return await SendAsync(new RevokeApiTokenCommand(id, tokenId), cancellationToken);
-    }
 }

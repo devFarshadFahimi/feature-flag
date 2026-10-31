@@ -6,7 +6,7 @@ internal class GetAllEnvironmentsQueryHandler(IApplicationDbContext dbContext) :
     public override async Task<List<EnvironmentResponse>> Handle(GetAllEnvironmentsQuery request, CancellationToken cancellationToken)
     {
         return await dbContext.Environments
-            .Include(e => e.Tokens)
+            .AsNoTracking()
             .ProjectToType<EnvironmentResponse>()
             .ToListAsync(cancellationToken);
     }

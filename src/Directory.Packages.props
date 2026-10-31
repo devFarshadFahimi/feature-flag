@@ -10,7 +10,7 @@
     <PackageVersion Include="BusinessFramework.SourceGenerator" Version="$(BusinessFrameworkPackagesVersion)" />
     <PackageVersion Include="EdgeServicesBuildingBlock.Contract" Version="$(BuildingBlockPackagesVersion)" />
     <PackageVersion Include="EdgeServicesBuildingBlock.Shared" Version="$(BuildingBlockPackagesVersion)" />
-    <PackageVersion Include="feature-flag-provider" Version="1.0.1" />
+    <PackageVersion Include="feature-flag-provider" Version="1.0.2" />
   </ItemGroup>
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- 📂 Application Layer                                -->
