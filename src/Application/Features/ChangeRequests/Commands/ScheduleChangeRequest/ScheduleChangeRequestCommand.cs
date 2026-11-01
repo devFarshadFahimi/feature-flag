@@ -30,7 +30,7 @@ internal class ScheduleChangeRequestCommandHandler(IApplicationDbContext dbConte
 
             var previous = await dbContext.ChangeRequests.SingleOrDefaultAsync(r => r.Id == previousId, cancellationToken) ?? throw new KeyNotFoundException("مرحله قبلی یافت نشد.");
 
-            if (previous.ProjectId != changeRequest.ProjectId || previous.EnvironmentId != changeRequest.EnvironmentId || previous.ScheduledAt is null || previous.ScheduledAt >= nextTime || previous.Status is not (ChangeRequestStatus.Scheduled or ChangeRequestStatus.Applied))
+            if (previous.ProjectId != changeRequest.ProjectId || previous.EnvironmentId != changeRequest.EnvironmentId || previous.ScheduledAt is null || previous.ScheduledAt >= nextTime || previous.Status is not(ChangeRequestStatus.Scheduled or ChangeRequestStatus.Applied))
             {
                 throw new ArgumentException("مرحله قبلی باید در همین پروژه و محیط و پیش از مرحله فعلی زمان‌بندی شده باشد.");
             }

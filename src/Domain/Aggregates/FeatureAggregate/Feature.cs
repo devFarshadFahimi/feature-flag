@@ -14,6 +14,7 @@ public sealed class Feature : AggregateRoot<Guid>
     {
         get; private set;
     }
+    = string.Empty;
 
     public FeatureType Type
     {
@@ -162,6 +163,13 @@ public sealed class Feature : AggregateRoot<Guid>
     }
 
     /// <summary>Restores configuration through the normal reviewed mutation path without replacing identity or history.</summary>
+    /// <param name="description">The optional restored feature description.</param>
+    /// <param name="type">The restored feature type.</param>
+    /// <param name="lifecycle">The restored feature lifecycle stage.</param>
+    /// <param name="isStale">Whether the restored feature is marked stale.</param>
+    /// <param name="impressionDataEnabled">Whether the restored feature accepts client impression reports.</param>
+    /// <param name="tags">The restored feature's tag values.</param>
+    /// <param name="prerequisites">The restored feature's prerequisite flag requirements.</param>
     public void RestoreConfiguration(string? description, FeatureType type, FeatureLifecycle lifecycle, bool isStale, bool impressionDataEnabled, IEnumerable<string> tags, IEnumerable<Domain.Evaluation.Prerequisite> prerequisites)
     {
         if (!Enum.IsDefined(type) || !Enum.IsDefined(lifecycle) || description?.Length > 2000)

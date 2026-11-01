@@ -151,6 +151,11 @@ public static class PaginationFactory
     {
         foreach (var filter in filters)
         {
+            if (string.IsNullOrWhiteSpace(filter.Column) || filter.Query is null)
+            {
+                throw new ArgumentException("نام ستون و مقدار فیلتر الزامی است.");
+            }
+
             var entityPropertyPath = GetEntityPropertyPath<TModel>(filter.Column);
             var parameter = Expression.Parameter(typeof(T), "x");
             var property = GetNestedPropertyExpression(parameter, entityPropertyPath);

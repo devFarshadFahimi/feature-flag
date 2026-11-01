@@ -17,7 +17,8 @@ public class ChangeRequestsController(IMediator mediator) : ApiControllerBase(me
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateChangeRequestCommand command, CancellationToken cancellationToken)
     {
-        return await SendAsync(command with
+        return await SendAsync(
+            command with
         {
             CreatedBy = Guid.Parse(User.FindFirst(Application.Common.Services.IdentityClaimNames.Subject)!.Value)
         }, cancellationToken);
@@ -62,7 +63,8 @@ public class ChangeRequestsController(IMediator mediator) : ApiControllerBase(me
         return id != command.Id ? BadRequest(new
         {
             Message = "شناسه مسیر و درخواست یکسان نیست."
-        }) : await SendAsync(command with
+        }) : await SendAsync(
+            command with
         {
             ReviewerId = Guid.Parse(User.FindFirst(Application.Common.Services.IdentityClaimNames.Subject)!.Value)
         }, cancellationToken);
@@ -74,7 +76,8 @@ public class ChangeRequestsController(IMediator mediator) : ApiControllerBase(me
         return id != command.Id ? BadRequest(new
         {
             Message = "شناسه مسیر و درخواست یکسان نیست."
-        }) : await SendAsync(command with
+        }) : await SendAsync(
+            command with
         {
             ReviewerId = Guid.Parse(User.FindFirst(Application.Common.Services.IdentityClaimNames.Subject)!.Value)
         }, cancellationToken);

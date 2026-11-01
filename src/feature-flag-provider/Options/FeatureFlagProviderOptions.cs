@@ -8,6 +8,8 @@ public sealed class FeatureFlagProviderOptions
 
     public string AuthEndpoint { get; set; } = "Auth/login";
 
+    public string RefreshEndpoint { get; set; } = "Auth/refresh";
+
     /// <summary>Gets or sets the email address used as the username by the current login API.</summary>
     public string Username { get; set; } = string.Empty;
 
@@ -22,15 +24,22 @@ public sealed class FeatureFlagProviderOptions
             || !string.IsNullOrEmpty(baseUri.Fragment)
             || string.IsNullOrWhiteSpace(Username)
             || string.IsNullOrWhiteSpace(Password)
-            || string.IsNullOrWhiteSpace(AuthEndpoint))
+            || string.IsNullOrWhiteSpace(AuthEndpoint)
+            || string.IsNullOrWhiteSpace(RefreshEndpoint))
         {
             return false;
         }
 
         var normalizedBase = new Uri(baseUri.AbsoluteUri.TrimEnd('/') + "/");
 
-        return Uri.TryCreate(AuthEndpoint, UriKind.Relative, out _)
-            && Uri.TryCreate(normalizedBase, AuthEndpoint, out var endpoint)
+        return IsValidEndpoint(normalizedBase, AuthEndpoint)
+            && IsValidEndpoint(normalizedBase, RefreshEndpoint);
+    }
+
+    private static bool IsValidEndpoint(Uri normalizedBase, string path)
+    {
+        return Uri.TryCreate(path, UriKind.Relative, out _)
+            && Uri.TryCreate(normalizedBase, path, out var endpoint)
             && normalizedBase.IsBaseOf(endpoint)
             && string.IsNullOrEmpty(endpoint.Query)
             && string.IsNullOrEmpty(endpoint.Fragment);

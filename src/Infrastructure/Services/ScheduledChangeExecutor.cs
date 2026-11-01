@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Application.Features.ChangeRequests;
 using Application.Features.Evaluations;
+using Application.Features.Metrics;
 using Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -11,7 +13,7 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
 
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
@@ -26,6 +28,7 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
                     }
                 }
 
+                await AggregateUsageAsync(stoppingToken);
                 await CleanupAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -40,6 +43,8 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
     }
 
     /// <summary>Claims one due request and commits its changes atomically; failed attempts recover in a fresh transaction.</summary>
+    /// <param name="ct">Cancels the operation and its database or network requests.</param>
+    /// <returns>Whether a due request was claimed for processing.</returns>
     private async Task<bool> ExecuteOneAsync(CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
@@ -118,6 +123,46 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
         }
     }
 
+    /// <summary>Claims durable batches across workers; aggregate writes and acknowledgement commit together.</summary>
+    /// <param name="ct">Cancels the operation and its database or network requests.</param>
+    /// <returns>A task that completes after the claimed usage batches are aggregated and acknowledged together.</returns>
+    private async Task AggregateUsageAsync(CancellationToken ct)
+    {
+        using var scope = scopes.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
+        var batches = await db.EvaluationBatches
+            .FromSqlRaw("""
+                SELECT * FROM "App"."EvaluationBatch"
+                ORDER BY "RecordedAt", "Id" LIMIT 200 FOR UPDATE SKIP LOCKED
+                """)
+            .ToListAsync(ct);
+
+        foreach (var group in batches.GroupBy(batch => new { batch.ProjectId, batch.EnvironmentId, batch.AppName, Hour = new DateTime(batch.RecordedAt.Year, batch.RecordedAt.Month, batch.RecordedAt.Day, batch.RecordedAt.Hour, 0, 0, DateTimeKind.Utc) }))
+        {
+            var counts = group
+                .SelectMany(batch => JsonSerializer.Deserialize<ImpressionInput[]>(batch.Counts) ?? [])
+                .GroupBy(count => new { count.FeatureName, count.Enabled, count.Variant })
+                .Select(items => new ImpressionInput(items.Key.FeatureName, items.Key.Enabled, items.Key.Variant, items.Sum(item => item.Count)))
+                .ToArray();
+            var recordedAt = group.Max(batch => batch.RecordedAt);
+            var names = counts
+                .Select(count => count.FeatureName)
+                .ToArray();
+
+            await FlagMetrics.RecordAsync(db, group.Key.ProjectId, group.Key.EnvironmentId, group.Key.AppName, counts, false, ct, recordedAt);
+            await db.FeatureEnvironments
+                .Where(environment => environment.EnvironmentId == group.Key.EnvironmentId && environment.Feature.ProjectId == group.Key.ProjectId && names.Contains(environment.Feature.Name) && (environment.LastSeenAt == null || environment.LastSeenAt < recordedAt))
+                .ExecuteUpdateAsync(update => update.SetProperty(environment => environment.LastSeenAt, recordedAt), ct);
+        }
+
+        db.EvaluationBatches.RemoveRange(batches);
+
+        await db.SaveChangeAsync(ct);
+        await transaction.CommitAsync(ct);
+    }
+
     private async Task CleanupAsync(CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
@@ -125,11 +170,13 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
         var deduplicationCutoff = DateTime.UtcNow.AddDays(-7);
         var aggregateCutoff = DateTime.UtcNow.AddDays(-90);
         // PostgreSQL tuple identity bounds each delete without loading metrics into process memory.
-        await db.Database.ExecuteSqlInterpolatedAsync($"""
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"""
             DELETE FROM "App"."ImpressionBatch" WHERE ctid IN
             (SELECT ctid FROM "App"."ImpressionBatch" WHERE "ReceivedAt" < {deduplicationCutoff} LIMIT 500)
             """, ct);
-        await db.Database.ExecuteSqlInterpolatedAsync($"""
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"""
             DELETE FROM "App"."FlagUsage" WHERE ctid IN
             (SELECT ctid FROM "App"."FlagUsage" WHERE "Hour" < {aggregateCutoff} LIMIT 500)
             """, ct);

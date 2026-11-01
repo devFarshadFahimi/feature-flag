@@ -1,19 +1,20 @@
 using System.Reflection;
 using Application.Common.Services;
 using BusinessMakerFramework.Infrastructure.SqlCommand;
+using BusinessMakerFramework.Shared.Abstractions.UserManagement;
 using Domain.Aggregates.ChangeRequestAggregate;
 using Domain.Aggregates.FeatureAggregate;
+using Domain.Aggregates.HistoryAggregate;
 using Domain.Aggregates.ProjectAggregate;
 using Domain.Aggregates.SegmentAggregate;
 using Domain.Aggregates.UserAggregate;
 using Domain.ValueObjects;
-using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
-using BusinessMakerFramework.Shared.Abstractions.UserManagement;
-using Domain.Aggregates.HistoryAggregate;
 using Infrastructure.Configurations;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 
 namespace Infrastructure;
 
+/// <summary>Coordinates persistence, configuration revisions, and configuration audit history.</summary>
 public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IUserInfoService? actor = null) : BaseCommandDbContext(options), IApplicationDbContext, IDataProtectionKeyContext
 {
     // Projects
@@ -34,7 +35,6 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<Variant> FeatureVariants => Set<Variant>();
     // Environments
     public DbSet<Domain.Aggregates.EnvironmentAggregate.Environment> Environments => Set<Domain.Aggregates.EnvironmentAggregate.Environment>();
-
     // Segments
     public DbSet<Segment> Segments => Set<Segment>();
 
@@ -51,6 +51,8 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
     public DbSet<ConfigurationHistory> ConfigurationHistory => Set<ConfigurationHistory>();
 
     public DbSet<Domain.Aggregates.UsageAggregate.FlagUsage> FlagUsage => Set<Domain.Aggregates.UsageAggregate.FlagUsage>();
+
+    public DbSet<Domain.Aggregates.UsageAggregate.EvaluationBatch> EvaluationBatches => Set<Domain.Aggregates.UsageAggregate.EvaluationBatch>();
 
     public DbSet<Domain.Aggregates.UsageAggregate.ImpressionBatch> ImpressionBatches => Set<Domain.Aggregates.UsageAggregate.ImpressionBatch>();
 

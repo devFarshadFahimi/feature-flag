@@ -5,6 +5,7 @@ using Application.Features.Segments.Commands.RemoveSegmentConstraint;
 using Application.Features.Segments.Commands.UpdateSegment;
 using Application.Features.Segments.Queries.GetAllSegments;
 using Application.Features.Segments.Queries.GetSegmentById;
+using Application.Features.Segments.Queries.GetSegmentsSelective;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
@@ -22,6 +23,12 @@ public class SegmentsController(IMediator mediator) : ApiControllerBase(mediator
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         return await SendAsync(new GetAllSegmentsQuery(), cancellationToken);
+    }
+
+    [HttpGet("Selective")]
+    public async Task<IActionResult> Selective(Guid? projectId = null, bool includeShared = true, CancellationToken cancellationToken = default)
+    {
+        return await SendAsync(new GetSegmentsSelectiveQuery(projectId, includeShared), cancellationToken);
     }
 
     [HttpGet("{id:int}")]

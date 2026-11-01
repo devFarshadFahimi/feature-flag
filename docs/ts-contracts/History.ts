@@ -6,7 +6,9 @@
  * New Feature snapshots restore metadata, lifecycle, tags, stale/impression settings and prerequisites.
  * New FeatureEnvironment snapshots restore enabled state, strategies/constraints/segments and variants.
  * FeatureStrategy restores its complete configuration (deleted strategies receive a new ID);
- * Segment restores constraints; ProjectEnvironmentPolicy and Environment restore protection settings.
+ * Segment restores metadata/visibility/constraints, including a deleted segment (expectedRevision:0).
+ * Its project and selected environment must still exist. Project restores metadata/default stickiness/limits;
+ * Environment restores name, sort order, enabled/protected settings. ProjectEnvironmentPolicy restores protection.
  * Global restores use projectId:null and normal independent RootAdmin approval at apply.
  * Strategy restore expects its parent feature/environment revision; other restore inputs use the
  * target feature, feature/environment, segment, policy or global environment revision respectively.
@@ -14,6 +16,7 @@
  * inside snapshots are numeric. Restore does not accept client-edited snapshots: it reads the row.
  * Legacy Feature records restore only description/type; legacy FeatureEnvironment only enabled.
  * Legacy strategy/segment rows without Configuration and unrelated resource types return 400.
+ * Deleted projects/environments and their cascaded children cannot be reconstructed from scalar history.
  * Creation rows (before:null) cannot be restored. No credentials/context are exposed.
  * Persian errors: 400 invalid/unsupported restore, 401/403 access, 404 record, 409 revision, 503 unavailable.
  */

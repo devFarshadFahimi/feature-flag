@@ -1,11 +1,69 @@
 using Application.Features.FeatureEnvironments;
+using Application.Features.Segments.Commands.CreateSegment;
+using Domain.Aggregates.SegmentAggregate;
 using Domain.Evaluation;
 using Domain.ValueObjects;
 
 namespace Application.Features.ChangeRequests;
 
+/// <summary>Validates governed configuration changes and applies them through aggregate transitions.</summary>
 public static partial class ConfigurationChanges
 {
+    private static void ValidateSegmentState(SegmentConfigurationState state)
+    {
+        if (string.IsNullOrWhiteSpace(state.Name) || state.Name.Length > 128 || state.Description?.Length > 2000 || state.Constraints is null || state.Constraints.Count > 100 || state.Constraints.Any(constraint => constraint is null))
+        {
+            throw new ArgumentException("تصویر پیکربندی بخش معتبر نیست.");
+        }
+
+        foreach (var constraint in state.Constraints)
+        {
+            _ = Constraint.Create(constraint.ContextName, constraint.Operator, constraint.Values, constraint.Inverted, constraint.CaseInsensitive);
+        }
+    }
+
+    private static void ValidateProjectState(ProjectConfigurationState state)
+    {
+        if (string.IsNullOrWhiteSpace(state.Name) || state.Name.Length > 255 || state.Description is null || state.Description.Length > 2000 || string.IsNullOrWhiteSpace(state.DefaultStickiness) || state.DefaultStickiness.Length > 64 || state.FeatureLimit is < 1)
+        {
+            throw new ArgumentException("تصویر پیکربندی پروژه معتبر نیست.");
+        }
+    }
+
+    private static void ValidateGlobalEnvironmentState(GlobalEnvironmentState state)
+    {
+        if (string.IsNullOrWhiteSpace(state.Name) || state.Name.Length > 128)
+        {
+            throw new ArgumentException("تصویر پیکربندی محیط معتبر نیست.");
+        }
+    }
+
+    /// <summary>Restores segment metadata and constraints, including deleted segments, without resetting revision history.</summary>
+    private static async Task RestoreSegmentAsync(IApplicationDbContext db, ChangePayload payload, CancellationToken ct)
+    {
+        var state = payload.SegmentState!;
+        var id = payload.SegmentId!.Value;
+        var segment = db.Segments.Local.SingleOrDefault(value => value.Id == id) ?? await db.Segments
+            .Include(value => value.Constraints)
+            .SingleOrDefaultAsync(value => value.Id == id, ct);
+
+        if (segment is null)
+        {
+            var revision = await db.ConfigurationHistory
+                .Where(history => history.ResourceType == nameof(Segment) && history.ResourceId == id.ToString())
+                .MaxAsync(history => history.Revision, ct);
+
+            segment = Segment.RestoreDeleted(id, state.ProjectId, state.Name, state.Description, state.IsPublic, revision);
+            db.Segments.Add(segment);
+        }
+        else
+        {
+            db.SegmentConstraints.RemoveRange(segment.Constraints);
+        }
+
+        segment.RestoreConfiguration(state.Name, state.Description, state.IsPublic, state.Constraints.Select(constraint => Constraint.Create(constraint.ContextName, constraint.Operator, constraint.Values, constraint.Inverted, constraint.CaseInsensitive)));
+    }
+
     /// <summary>Rejects incomplete or foreign history before it can enter the approval workflow.</summary>
     private static async Task ValidateRestoreAsync(IApplicationDbContext db, FeatureEnvironment environment, string action, ChangePayload payload, CancellationToken ct)
     {
@@ -43,13 +101,15 @@ public static partial class ConfigurationChanges
             .ToArray());
         foreach (var strategy in configuration.Strategies)
         {
-            await FeatureConfiguration.ConfigureAsync(db, environment, strategy with
+            var strategyInput = strategy with
             {
                 FeatureId = environment.FeatureId,
                 EnvironmentId = environment.EnvironmentId,
                 StrategyId = null,
                 ExpectedRevision = environment.Revision
-            }, ct, validateOnly: true);
+            };
+
+            await FeatureConfiguration.ConfigureAsync(db, environment, strategyInput, ct, validateOnly: true);
         }
     }
 
@@ -70,14 +130,16 @@ public static partial class ConfigurationChanges
         {
             var strategy = ordered[index];
 
-            await FeatureConfiguration.ConfigureAsync(db, environment, strategy with
+            var strategyInput = strategy with
             {
                 FeatureId = environment.FeatureId,
                 EnvironmentId = environment.EnvironmentId,
                 StrategyId = null,
                 SortOrder = index,
                 ExpectedRevision = environment.Revision
-            }, ct);
+            };
+
+            await FeatureConfiguration.ConfigureAsync(db, environment, strategyInput, ct);
         }
 
         db.FeatureVariants.RemoveRange(environment.Variants);
@@ -93,3 +155,7 @@ public static partial class ConfigurationChanges
         }
     }
 }
+
+public sealed record SegmentConfigurationState(string Name, string? Description, bool IsPublic, Guid? ProjectId, List<ConstraintDto> Constraints);
+public sealed record ProjectConfigurationState(string Name, string Description, string DefaultStickiness, int? FeatureLimit);
+public sealed record GlobalEnvironmentState(string Name, int SortOrder, bool Enabled, bool Protected);

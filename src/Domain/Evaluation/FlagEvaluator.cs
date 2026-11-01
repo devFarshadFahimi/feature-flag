@@ -16,6 +16,8 @@ public sealed record FlagDefinition(Guid Id, string Name, bool Enabled, bool Arc
 public sealed record ConfigurationSnapshot(Guid ProjectId, Guid EnvironmentId, bool EnvironmentEnabled, DateTimeOffset LoadedAt, IReadOnlyList<FlagDefinition> Flags, IReadOnlyDictionary<int, IReadOnlyList<Constraint>> Segments);
 public static class FlagEvaluator
 {
+    public static readonly EvaluatedVariant DisabledVariant = new("disabled", false, null);
+
     private const string HashVersion = "v1";
 
     private const string RolloutPurpose = "rollout";
@@ -30,112 +32,16 @@ public static class FlagEvaluator
 
     private const string SessionIdField = "sessionId";
 
-    public static readonly EvaluatedVariant DisabledVariant = new("disabled", false, null);
-
     private static readonly Regex VersionPattern = new(@"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
 
     /// <summary>Evaluates current context against immutable rules, with cycle/depth guards and per-request prerequisite memoization.</summary>
+    /// <param name="snapshot">The immutable configuration snapshot containing flags and their prerequisites.</param>
+    /// <param name="flag">The feature definition to evaluate.</param>
+    /// <param name="context">The consumer's targeting and stickiness values.</param>
+    /// <param name="now">The timestamp used when producing the evaluation decision.</param>
+    /// <param name="preview">Whether to include preview-only evaluation details.</param>
+    /// <returns>The flag decision computed from the supplied configuration and context.</returns>
     public static FlagDecision Evaluate(ConfigurationSnapshot snapshot, FlagDefinition flag, EvaluationContext context, DateTimeOffset now, bool preview = false) => Evaluate(snapshot, flag, context, now, preview, new HashSet<Guid>(), new Dictionary<Guid, (FlagDecision Decision, int Depth)>());
-
-    private static FlagDecision Evaluate(ConfigurationSnapshot snapshot, FlagDefinition flag, EvaluationContext context, DateTimeOffset now, bool preview, HashSet<Guid> ancestors, Dictionary<Guid, (FlagDecision Decision, int Depth)> memo)
-    {
-        if (ancestors.Contains(flag.Id) || ancestors.Count >= 20)
-        {
-            return new(flag.Name, false, DisabledVariant, "dependency_cycle_or_depth", flag.Revision);
-        }
-
-        if (memo.TryGetValue(flag.Id, out var cached))
-        {
-            return cached.Decision.Enabled && ancestors.Count + cached.Depth > 20 ? new(flag.Name, false, DisabledVariant, "dependency_cycle_or_depth", flag.Revision) : cached.Decision;
-        }
-
-        var decision = EvaluateCore(snapshot, flag, context, now, preview, ancestors, memo);
-        var depth = 1 + flag.Prerequisites
-            .Select(p => memo.TryGetValue(p.FeatureId, out var parent) ? parent.Depth : 0)
-            .DefaultIfEmpty(0)
-            .Max();
-
-        memo[flag.Id] = (decision, depth);
-
-        return decision;
-    }
-
-    private static FlagDecision EvaluateCore(ConfigurationSnapshot snapshot, FlagDefinition flag, EvaluationContext context, DateTimeOffset now, bool preview, HashSet<Guid> ancestors, Dictionary<Guid, (FlagDecision Decision, int Depth)> memo)
-    {
-        FlagDecision Off(string reason) => new(flag.Name, false, DisabledVariant, reason, flag.Revision);
-
-        if (!snapshot.EnvironmentEnabled)
-        {
-            return Off("environment_disabled");
-        }
-
-        if (flag.Archived)
-        {
-            return Off("archived");
-        }
-
-        if (!flag.Enabled)
-        {
-            return Off("disabled");
-        }
-
-        if (ancestors.Count >= 20 || !ancestors.Add(flag.Id))
-        {
-            return Off("dependency_cycle_or_depth");
-        }
-
-        try
-        {
-            foreach (var dependency in flag.Prerequisites)
-            {
-                var parent = snapshot.Flags.FirstOrDefault(f => f.Id == dependency.FeatureId);
-
-                if (parent is null)
-                {
-                    return Off("prerequisite_failed");
-                }
-
-                var decision = Evaluate(snapshot, parent, context, now, preview, ancestors, memo);
-
-                if (!decision.Enabled || dependency.Variant is not null && decision.Variant.Name != dependency.Variant)
-                {
-                    return Off("prerequisite_failed");
-                }
-            }
-
-            foreach (var strategy in flag.Strategies
-                .Where(s => s.Enabled)
-                .OrderBy(s => s.SortOrder)
-                .ThenBy(s => s.Id))
-            {
-                if (!strategy.Constraints.All(c => Matches(c, context, preview ? context.CurrentTime ?? now : now)))
-                {
-                    continue;
-                }
-
-                if (!strategy.SegmentIds.All(id => snapshot.Segments.TryGetValue(id, out var constraints) && constraints.All(c => Matches(c, context, preview ? context.CurrentTime ?? now : now))))
-                {
-                    continue;
-                }
-
-                if (!MatchesStrategy(snapshot.ProjectId, flag.Name, strategy, context))
-                {
-                    continue;
-                }
-
-                var variants = strategy.Variants.Count > 0 ? strategy.Variants : flag.Variants;
-                var variant = SelectVariant(snapshot.ProjectId, flag.Name, strategy.Parameters, variants, context);
-
-                return new(flag.Name, true, variant, "strategy_matched", flag.Revision, preview ? strategy.Id : null);
-            }
-
-            return Off("no_matching_strategy");
-        }
-        finally
-        {
-            ancestors.Remove(flag.Id);
-        }
-    }
 
     public static void ValidatePrerequisites(IReadOnlyDictionary<Guid, IReadOnlyList<Prerequisite>> graph)
     {
@@ -305,9 +211,16 @@ public static class FlagEvaluator
     }
 
     /// <summary>Produces a language-independent bucket from length-prefixed UTF-8 fields and a SHA-256 digest.</summary>
+    /// <param name="projectId">The identifier of the owning project.</param>
+    /// <param name="group">The rollout group used to keep related assignments stable.</param>
+    /// <param name="field">The context field chosen for stickiness.</param>
+    /// <param name="value">The context value used to assign a stable bucket.</param>
+    /// <param name="purpose">The discriminator separating rollout and variant assignments.</param>
+    /// <returns>A deterministic bucket in the range zero through 9,999.</returns>
     public static int Bucket(Guid projectId, string group, string field, string value, string purpose)
     {
         using var stream = new MemoryStream();
+        Span<byte> length = stackalloc byte[sizeof(int)];
 
         foreach (var part in new[]
         {
@@ -322,7 +235,6 @@ public static class FlagEvaluator
         )
         {
             var bytes = Encoding.UTF8.GetBytes(part);
-            Span<byte> length = stackalloc byte[4];
 
             BinaryPrimitives.WriteInt32BigEndian(length, bytes.Length);
             stream.Write(length);
@@ -330,6 +242,148 @@ public static class FlagEvaluator
         }
 
         return (int)(BinaryPrimitives.ReadUInt64BigEndian(SHA256.HashData(stream.ToArray())) % 10000);
+    }
+
+    public static bool IpMatches(string? address, string range)
+    {
+        if (!IPAddress.TryParse(address, out var ip))
+        {
+            return false;
+        }
+
+        var parts = range.Split('/');
+
+        if (parts.Length > 2 || !IPAddress.TryParse(parts[0], out var network))
+        {
+            return false;
+        }
+
+        var bytes = ip.GetAddressBytes();
+        var networkBytes = network.GetAddressBytes();
+
+        if (bytes.Length != networkBytes.Length)
+        {
+            return false;
+        }
+
+        var bits = bytes.Length * 8;
+
+        if (parts.Length == 2 && (!int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out bits) || bits < 0 || bits > bytes.Length * 8))
+        {
+            return false;
+        }
+
+        for (var index = 0; index < bytes.Length; index++)
+        {
+            var mask = (byte)(255 << (8 - Math.Clamp(bits - (index * 8), 0, 8)));
+
+            if ((bytes[index] & mask) != (networkBytes[index] & mask))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static FlagDecision Evaluate(ConfigurationSnapshot snapshot, FlagDefinition flag, EvaluationContext context, DateTimeOffset now, bool preview, HashSet<Guid> ancestors, Dictionary<Guid, (FlagDecision Decision, int Depth)> memo)
+    {
+        if (ancestors.Contains(flag.Id) || ancestors.Count >= 20)
+        {
+            return new(flag.Name, false, DisabledVariant, "dependency_cycle_or_depth", flag.Revision);
+        }
+
+        if (memo.TryGetValue(flag.Id, out var cached))
+        {
+            return cached.Decision.Enabled && ancestors.Count + cached.Depth > 20 ? new(flag.Name, false, DisabledVariant, "dependency_cycle_or_depth", flag.Revision) : cached.Decision;
+        }
+
+        var decision = EvaluateCore(snapshot, flag, context, now, preview, ancestors, memo);
+        var depth = 1 + flag.Prerequisites
+            .Select(p => memo.TryGetValue(p.FeatureId, out var parent) ? parent.Depth : 0)
+            .DefaultIfEmpty(0)
+            .Max();
+
+        memo[flag.Id] = (decision, depth);
+
+        return decision;
+    }
+
+    private static FlagDecision EvaluateCore(ConfigurationSnapshot snapshot, FlagDefinition flag, EvaluationContext context, DateTimeOffset now, bool preview, HashSet<Guid> ancestors, Dictionary<Guid, (FlagDecision Decision, int Depth)> memo)
+    {
+        FlagDecision Off(string reason) => new(flag.Name, false, DisabledVariant, reason, flag.Revision);
+
+        if (!snapshot.EnvironmentEnabled)
+        {
+            return Off("environment_disabled");
+        }
+
+        if (flag.Archived)
+        {
+            return Off("archived");
+        }
+
+        if (!flag.Enabled)
+        {
+            return Off("disabled");
+        }
+
+        if (ancestors.Count >= 20 || !ancestors.Add(flag.Id))
+        {
+            return Off("dependency_cycle_or_depth");
+        }
+
+        try
+        {
+            foreach (var dependency in flag.Prerequisites)
+            {
+                var parent = snapshot.Flags.FirstOrDefault(f => f.Id == dependency.FeatureId);
+
+                if (parent is null)
+                {
+                    return Off("prerequisite_failed");
+                }
+
+                var decision = Evaluate(snapshot, parent, context, now, preview, ancestors, memo);
+
+                if (!decision.Enabled || (dependency.Variant is not null && decision.Variant.Name != dependency.Variant))
+                {
+                    return Off("prerequisite_failed");
+                }
+            }
+
+            foreach (var strategy in flag.Strategies
+                .Where(s => s.Enabled)
+                .OrderBy(s => s.SortOrder)
+                .ThenBy(s => s.Id))
+            {
+                if (!strategy.Constraints.All(c => Matches(c, context, preview ? context.CurrentTime ?? now : now)))
+                {
+                    continue;
+                }
+
+                if (!strategy.SegmentIds.All(id => snapshot.Segments.TryGetValue(id, out var constraints) && constraints.All(c => Matches(c, context, preview ? context.CurrentTime ?? now : now))))
+                {
+                    continue;
+                }
+
+                if (!MatchesStrategy(snapshot.ProjectId, flag.Name, strategy, context))
+                {
+                    continue;
+                }
+
+                var variants = strategy.Variants.Count > 0 ? strategy.Variants : flag.Variants;
+                var variant = SelectVariant(snapshot.ProjectId, flag.Name, strategy.Parameters, variants, context);
+
+                return new(flag.Name, true, variant, "strategy_matched", flag.Revision, preview ? strategy.Id : null);
+            }
+
+            return Off("no_matching_strategy");
+        }
+        finally
+        {
+            ancestors.Remove(flag.Id);
+        }
     }
 
     private static bool MatchesStrategy(Guid projectId, string name, StrategyDefinition strategy, EvaluationContext context)
@@ -425,48 +479,6 @@ public static class FlagEvaluator
         .ToString("O"),
         _ => context.Properties?.GetValueOrDefault(name)
     };
-
-    public static bool IpMatches(string? address, string range)
-    {
-        if (!IPAddress.TryParse(address, out var ip))
-        {
-            return false;
-        }
-
-        var parts = range.Split('/');
-
-        if (parts.Length > 2 || !IPAddress.TryParse(parts[0], out var network))
-        {
-            return false;
-        }
-
-        var bytes = ip.GetAddressBytes();
-        var networkBytes = network.GetAddressBytes();
-
-        if (bytes.Length != networkBytes.Length)
-        {
-            return false;
-        }
-
-        var bits = bytes.Length * 8;
-
-        if (parts.Length == 2 && (!int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out bits) || bits < 0 || bits > bytes.Length * 8))
-        {
-            return false;
-        }
-
-        for (var index = 0; index < bytes.Length; index++)
-        {
-            var mask = (byte)(255 << (8 - Math.Clamp(bits - index * 8, 0, 8)));
-
-            if ((bytes[index] & mask) != (networkBytes[index] & mask))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     private static bool ParseDate(string value, out DateTimeOffset result) => DateTimeOffset.TryParseExact(value, ["O", "yyyy-MM-dd'T'HH:mm:ssK", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK"], CultureInfo.InvariantCulture, DateTimeStyles.None, out result) && (value.EndsWith('Z') || Regex.IsMatch(value, @"[+-][0-9]{2}:[0-9]{2}$", RegexOptions.CultureInvariant));
 

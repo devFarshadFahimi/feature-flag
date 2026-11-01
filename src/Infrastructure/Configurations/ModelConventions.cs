@@ -5,6 +5,7 @@ namespace Infrastructure.Configurations;
 internal static class ModelConventions
 {
     /// <summary>Applies shared revision and mutable JSON tracking conventions after entity mappings.</summary>
+    /// <param name="modelBuilder">The model builder to which the shared persistence conventions are applied.</param>
     internal static void ApplyConfigurationConventions(this ModelBuilder modelBuilder)
     {
         foreach (var entity in modelBuilder.Model

@@ -19,7 +19,7 @@ internal class DeactivateUserCommandHandler(IApplicationDbContext dbContext, Bus
             .Select(u => u.Role)
             .SingleAsync(cancellationToken);
 
-        if (currentRole < UserRole.Admin || (user.Role == UserRole.RootAdmin) && currentRole != UserRole.RootAdmin)
+        if (currentRole < UserRole.Admin || ((user.Role == UserRole.RootAdmin) && currentRole != UserRole.RootAdmin))
         {
             throw new System.Security.SecurityException("تغییر مدیر ریشه فقط برای مدیر ریشه مجاز است.");
         }

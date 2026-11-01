@@ -4,7 +4,7 @@
  * owners with global Editor+, or Admin+. Editing invalidates approvals and dependent stages.
  * Payload remains JSON TEXT inside payload, using the version-1 ChangePayload below. Submit validates
  * scope/revisions; apply mutates all items/history atomically. Protected writes require approved requests.
- * Schedule requires future UTC; executor polls every5s and rechecks permissions/revisions. Transient
+ * Schedule requires future UTC; executor polls every second and rechecks permissions/revisions. Transient
  * failures retry at most5 times; conflicts suspend. Linked stages carry predecessor result revisions.
  * All failures are Persian. Success shapes remain UUID/200-empty/current response as declared below.
  */
@@ -171,7 +171,7 @@ export interface ChangeRequestsEndpoints {
   };
 }
 
-export type ChangeAction = "setEnabled" | "upsertStrategy" | "deleteStrategy" | "reorderStrategies" | "replaceVariants" | "replaceSegmentConstraints" | "updateFeature" | "setPrerequisites" | "setProjectProtection" | "setGlobalProtection" | "restoreFeature" | "restoreEnvironment";
+export type ChangeAction = "setEnabled" | "upsertStrategy" | "deleteStrategy" | "reorderStrategies" | "replaceVariants" | "replaceSegmentConstraints" | "updateFeature" | "setPrerequisites" | "setProjectProtection" | "setGlobalProtection" | "restoreFeature" | "restoreEnvironment" | "restoreSegment" | "restoreProject" | "restoreGlobalEnvironment";
 /** JSON.stringify this object into AddChangeRequestItemCommand.payload. expectedRevision is FE revision
  * for flag environment operations, feature revision for metadata/prerequisites, segment revision for
  * constraints, policy revision for project protection, or environment revision for global protection.
@@ -189,6 +189,9 @@ export interface ChangePayload {
   requiredApprovals?: number | null; protectionEnabled?: boolean | null;
   featureState?: FeatureConfigurationState | null;
   environmentState?: EnvironmentConfigurationState | null;
+  segmentState?: SegmentConfigurationState | null;
+  projectState?: ProjectConfigurationState | null;
+  globalEnvironmentState?: GlobalEnvironmentState | null;
 }
 /** Full configuration restore actions require the corresponding state. restoreFeature uses the feature
  * revision; restoreEnvironment uses the feature/environment revision. Both follow normal approvals.
@@ -232,3 +235,21 @@ export interface ChangeRequestResponse {
 export interface CreateChangeRequestCommand { predecessorId?: Uuid | null; }
 
 /** updateFeature.lifecycle accepts Active, Completed or Archived. replaceVariants.strategyId targets a strategy; omit it for environment fallback variants. Shared-resource approval thresholds use the strongest affected environment policy. */
+
+/** Reviewed restoration. restoreSegment uses segmentId and segmentState; a deleted segment uses
+ * expectedRevision:0 and keeps its original ID with a revision above its history. Its owning project
+ * must still exist. Global/shared restoration requires independent RootAdmin approval.
+ * restoreProject restores an existing project's metadata/limits, never memberships or deleted children.
+ * restoreGlobalEnvironment restores an existing global environment's name/order/enabled/protected state.
+ * Use project revision for restoreProject and environment revision for restoreGlobalEnvironment.
+ * Preview returns these state shapes; before:null indicates a deleted segment being recreated. */
+export interface SegmentConfigurationState {
+  name: string; description: string | null; isPublic: boolean; projectId: Uuid | null;
+  constraints: import("./Segments").ConstraintDto[];
+}
+export interface ProjectConfigurationState {
+  name: string; description: string; defaultStickiness: string; featureLimit: number | null;
+}
+export interface GlobalEnvironmentState {
+  name: string; sortOrder: number; enabled: boolean; protected: boolean;
+}

@@ -16,6 +16,8 @@ public static class DatabaseSeeder
     private const string PasswordKey = "Bootstrap:Password";
 
     /// <summary>Creates the explicitly configured login once, preserving existing accounts and the root-admin guard.</summary>
+    /// <param name="serviceProvider">The service provider used to resolve a scoped database and bootstrap settings.</param>
+    /// <returns>A task that completes when configured administrator initialization has finished.</returns>
     public static async Task SeedAdminUserAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();

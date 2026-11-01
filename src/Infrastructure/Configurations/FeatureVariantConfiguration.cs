@@ -1,6 +1,7 @@
 using Domain.ValueObjects;
 
 namespace Infrastructure.Configurations;
+
 /// <summary>
 /// Configuration for Variant value objects (used by FeatureEnvironment and FeatureStrategy).
 /// </summary>

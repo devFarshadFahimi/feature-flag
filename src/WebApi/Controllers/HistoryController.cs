@@ -1,12 +1,15 @@
+using System.Text.Json;
 using Application.Common.Services;
 using Application.Features.ChangeRequests;
-using Domain.Aggregates.ChangeRequestAggregate;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 using Application.Features.FeatureEnvironments;
 using Application.Features.Segments.Commands.CreateSegment;
+using Domain.Aggregates.ChangeRequestAggregate;
 using Domain.Aggregates.FeatureAggregate;
+using Domain.Aggregates.ProjectAggregate;
+using Domain.Aggregates.SegmentAggregate;
 using Domain.Enums;
+using Microsoft.EntityFrameworkCore;
+using FlagEnvironment = Domain.Aggregates.EnvironmentAggregate.Environment;
 
 namespace WebApi.Controllers;
 
@@ -36,8 +39,12 @@ public sealed class HistoryController(IMediator mediator, IApplicationDbContext 
             .ToListAsync(cancellationToken));
     }
 
-    [HttpPost("{id:guid}/restore")]
     /// <summary>Creates a revision-checked draft; restoration always requires the ordinary review and apply workflow.</summary>
+    /// <param name="id">The identifier of the history record whose before-image should be restored.</param>
+    /// <param name="input">The configuration values to validate and apply.</param>
+    /// <param name="cancellationToken">Cancels the operation and its database or network requests.</param>
+    /// <returns>The newly created draft change request, ready for the ordinary review workflow.</returns>
+    [HttpPost("{id:guid}/restore")]
     public async Task<IActionResult> Restore(Guid id, [FromBody] RestoreHistoryInput input, CancellationToken cancellationToken)
     {
         var history = await db.ConfigurationHistory
@@ -47,6 +54,11 @@ public sealed class HistoryController(IMediator mediator, IApplicationDbContext 
         if (history.ProjectId != input.ProjectId || history.Before is null)
         {
             throw new ArgumentException("بازیابی این رکورد برای پروژه ممکن نیست.");
+        }
+
+        if (!await db.Environments.AnyAsync(environment => environment.Id == input.EnvironmentId, cancellationToken))
+        {
+            throw new KeyNotFoundException("محیط بازیابی یافت نشد؛ تصویر ناقص برای بازسازی محیط حذف‌شده کافی نیست.");
         }
 
         using var json = JsonDocument.Parse(history.Before);
@@ -69,7 +81,7 @@ public sealed class HistoryController(IMediator mediator, IApplicationDbContext 
             }
 
             featureId = json.RootElement
-                .GetProperty("FeatureId")
+                .GetProperty(nameof(FeatureEnvironment.FeatureId))
                 .GetGuid();
 
             if (snapshot.TryGetProperty(ConfigurationChanges.SnapshotField, out var configuration))
@@ -91,11 +103,11 @@ public sealed class HistoryController(IMediator mediator, IApplicationDbContext 
             action = ChangeActionNames.UpdateFeature;
 
             var type = (FeatureType)json.RootElement
-                .GetProperty("Type")
+                .GetProperty(nameof(Feature.Type))
                 .GetInt32();
 
             payload = new(1, input.ExpectedRevision, Description: json.RootElement
-                .GetProperty("Description")
+                .GetProperty(nameof(Feature.Description))
                 .GetString(), Type: type);
 
             if (snapshot.TryGetProperty(ConfigurationChanges.SnapshotField, out var configuration))
@@ -115,34 +127,101 @@ public sealed class HistoryController(IMediator mediator, IApplicationDbContext 
             var strategyId = await db.FeatureStrategies.AnyAsync(s => s.Id == configuration.StrategyId, cancellationToken) ? configuration.StrategyId : null;
 
             action = ChangeActionNames.UpsertStrategy;
-            payload = new(1, input.ExpectedRevision, Strategy: configuration with
+            var strategyInput = configuration with
             {
                 StrategyId = strategyId,
                 ExpectedRevision = input.ExpectedRevision
-            });
+            };
+
+            payload = new(1, input.ExpectedRevision, Strategy: strategyInput);
         }
-        else if (history.ResourceType == "Segment")
+        else if (history.ResourceType == nameof(Segment))
         {
-            action = ChangeActionNames.ReplaceSegmentConstraints;
-            payload = new(1, input.ExpectedRevision, SegmentId: int.Parse(history.ResourceId), Constraints: ReadConfiguration(snapshot).Deserialize<List<ConstraintDto>>(options));
+            action = ChangeActionNames.RestoreSegment;
+            var name = snapshot
+                .GetProperty(nameof(Segment.Name))
+                .GetString()!;
+            var description = snapshot
+                .GetProperty(nameof(Segment.Description))
+                .GetString();
+            var isPublic = snapshot
+                .GetProperty(nameof(Segment.IsPublic))
+                .GetBoolean();
+            var segmentState = new SegmentConfigurationState(
+                name,
+                description,
+                isPublic,
+                history.ProjectId,
+                ReadConfiguration(snapshot).Deserialize<List<ConstraintDto>>(options)!);
+
+            payload = new(1, input.ExpectedRevision, SegmentId: int.Parse(history.ResourceId), SegmentState: segmentState);
         }
-        else if (history.ResourceType == "ProjectEnvironmentPolicy")
+        else if (history.ResourceType == nameof(Project))
+        {
+            if (!input.ProjectId.HasValue || Guid.Parse(history.ResourceId) != input.ProjectId.Value)
+            {
+                throw new ArgumentException("پروژه بازیابی با رکورد تاریخچه یکسان نیست.");
+            }
+
+            action = ChangeActionNames.RestoreProject;
+            var name = snapshot
+                .GetProperty(nameof(Project.Name))
+                .GetString()!;
+            var description = snapshot
+                .GetProperty(nameof(Project.Description))
+                .GetString()!;
+            var defaultStickiness = snapshot
+                .GetProperty(nameof(Project.DefaultStickiness))
+                .GetString()!;
+            var limitEnabled = snapshot
+                .GetProperty(nameof(Project.FeatureLimitEnabled))
+                .GetBoolean();
+            var featureLimit = limitEnabled
+                ? snapshot
+                    .GetProperty(nameof(Project.FeatureLimit))
+                    .GetInt32()
+                : (int?)null;
+            var projectState = new ProjectConfigurationState(
+                name,
+                description,
+                defaultStickiness,
+                featureLimit);
+
+            payload = new(1, input.ExpectedRevision, ProjectState: projectState);
+        }
+        else if (history.ResourceType == nameof(ProjectEnvironmentPolicy))
         {
             RequireEnvironment(history.EnvironmentId, input.EnvironmentId);
             action = ChangeActionNames.SetProjectProtection;
             payload = new(1, input.ExpectedRevision, RequiredApprovals: snapshot
-                .GetProperty("RequiredApprovals")
+                .GetProperty(nameof(ProjectEnvironmentPolicy.RequiredApprovals))
                 .GetInt32(), ProtectionEnabled: snapshot
-                .GetProperty("Enabled")
+                .GetProperty(nameof(FlagEnvironment.Enabled))
                 .GetBoolean());
         }
-        else if (history.ResourceType == "Environment")
+        else if (history.ResourceType == nameof(Domain.Aggregates.EnvironmentAggregate.Environment))
         {
             RequireEnvironment(history.EnvironmentId, input.EnvironmentId);
-            action = ChangeActionNames.SetGlobalProtection;
-            payload = new(1, input.ExpectedRevision, ProtectionEnabled: snapshot
-                .GetProperty("Protected")
-                .GetBoolean());
+            action = ChangeActionNames.RestoreGlobalEnvironment;
+            var name = snapshot
+                .GetProperty(nameof(FlagEnvironment.Name))
+                .GetString()!;
+            var sortOrder = snapshot
+                .GetProperty(nameof(FlagEnvironment.SortOrder))
+                .GetInt32();
+            var enabled = snapshot
+                .GetProperty(nameof(FlagEnvironment.Enabled))
+                .GetBoolean();
+            var isProtected = snapshot
+                .GetProperty(nameof(FlagEnvironment.Protected))
+                .GetBoolean();
+            var environmentState = new GlobalEnvironmentState(
+                name,
+                sortOrder,
+                enabled,
+                isProtected);
+
+            payload = new(1, input.ExpectedRevision, GlobalEnvironmentState: environmentState);
         }
         else
         {

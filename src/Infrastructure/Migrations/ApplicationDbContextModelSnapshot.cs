@@ -444,6 +444,30 @@ namespace Infrastructure.Migrations
                     b.ToTable("ConfigurationHistory", "App");
                 });
 
+            modelBuilder.Entity("Domain.Aggregates.HistoryAggregate.ConfigurationVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ConfigurationVersion", "App");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Revision = 0L
+                        });
+                });
+
             modelBuilder.Entity("Domain.Aggregates.ProjectAggregate.Project", b =>
                 {
                     b.Property<Guid>("Id")
@@ -595,6 +619,38 @@ namespace Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("TblSegment", "App");
+                });
+
+            modelBuilder.Entity("Domain.Aggregates.UsageAggregate.EvaluationBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AppName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Counts")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("EnvironmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecordedAt", "Id");
+
+                    b.ToTable("EvaluationBatch", "App");
                 });
 
             modelBuilder.Entity("Domain.Aggregates.UsageAggregate.FlagUsage", b =>

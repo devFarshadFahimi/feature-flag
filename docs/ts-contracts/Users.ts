@@ -1,10 +1,9 @@
 /** Users frontend contract. Baseline: 2026-10-26.
- * All actions require a bearer JWT. Plain [Authorize] does not enforce AdminOnly.
+ * All actions require an active bearer JWT and Admin/RootAdmin, enforced by the resource filter.
  * Create form: email/password, optional role (numeric Viewer=0), optional name. Update sends id, name, email;
  * null profile fields leave existing values unchanged. Role change body id must match route id.
  * EF limits: email/name 255; email is unique. No password-strength rule is implemented here.
- * Read DTO differs from AuthUserResponse. Existing UserMappingConfig imports the Auth DTO; verify projection
- * on the running API before depending on all administrative fields. Never display/store password hashes.
+ * Read DTO differs from AuthUserResponse. Never display/store password hashes.
  * JSON property names use camelCase. Nullable fields without defaults remain required in this contract;
  * optional fields have server defaults. Check README.md before implementing a client.
  */
@@ -111,3 +110,17 @@ export interface UsersEndpoints {
 /** All user administration requires Admin/RootAdmin. Only RootAdmin can create/change another RootAdmin;
  * at least one active RootAdmin must remain. Passwords require at least12 characters. Promotions and
  * deactivation revoke sessions; old JWTs stop working immediately on subsequent validation. */
+
+/** Dropdown contract: GET /api/v1/Users/Selective; bearer JWT, no body, 200 SelectiveDTO[].
+ * Persian errors: 400 malformed query, 401 unauthenticated, 403 denied, 404 unknown explicit project,
+ * 503 unavailable. Empty matches return []; labels are display text and keys are submitted IDs.
+ * Admin/RootAdmin only. includeInactive defaults false; value is name or email when name is empty.
+ * Frontend: load these options for related forms and submit key, never a typed entity ID or value. */
+export type UserSelectiveDTO = import("./Common").SelectiveDTO<Uuid>;
+export interface UsersEndpoints {
+  selective: {
+    method: "GET"; path: "/api/v1/Users/Selective"; auth: "bearer";
+    pathParams: never; query: { includeInactive?: boolean }; body: never;
+    success: UserSelectiveDTO[]; successStatus: 200;
+  };
+}

@@ -13,6 +13,7 @@ public sealed class ChangeRequestItem : Entity<Guid>
     {
         get; private set;
     }
+    = string.Empty;
 
     public Guid? FeatureId
     {

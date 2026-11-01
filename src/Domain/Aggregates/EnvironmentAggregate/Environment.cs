@@ -80,9 +80,16 @@ public sealed class Environment : AggregateRoot<Guid>
         Name = name.Trim();
     }
 
+    public void RestoreConfiguration(string name, int sortOrder, bool enabled, bool isProtected)
+    {
+        Rename(name);
+        UpdateSortOrder(sortOrder);
+        Enabled = enabled;
+        SetProtected(isProtected);
+    }
+
     public void SetProtected(bool isProtected)
     {
         Protected = isProtected;
     }
-
 }

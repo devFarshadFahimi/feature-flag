@@ -15,6 +15,7 @@ public class UserDto : IIdentifiable<long>
     {
         get; set;
     }
+    = string.Empty;
 }
 
 // 2. The Query explicitly returns a HATEOAS Resource
@@ -31,6 +32,11 @@ public class GetUserQueryHandler : IRequestHandler<GetUserQuery, Resource<UserDt
     public async Task<Resource<UserDto>> Handle(GetUserQuery request, CancellationToken cancellationToken)
     {
         var user = UserData.Users.FirstOrDefault(p => p.Id.Equals(request.Id));
+
+        if (user is null)
+        {
+            throw new KeyNotFoundException("کاربر یافت نشد.");
+        }
 
         return new Resource<UserDto>(user);
     }

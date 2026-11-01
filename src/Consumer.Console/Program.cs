@@ -45,15 +45,15 @@ try
 
     using var container = services.BuildServiceProvider();
 
-    // Keep this same typed-client instance: login stores its session for evaluation.
+    // Keep this same typed-client instance: it stores tokens and refreshes them automatically.
     var provider = container.GetRequiredService<FeatureFlagProvider>();
 
     Console.WriteLine("1. Requesting an access token...");
 
-    var session = await provider.IssueTokenAsync(cancellation.Token);
+    var tokens = await provider.IssueTokenAsync(cancellation.Token);
 
     // Never print or persist access/refresh tokens or the configured password.
-    Console.WriteLine($"Login successful; access token expires at {session.AccessTokenExpiration:O}");
+    Console.WriteLine($"Login successful; access token expires at {tokens.AccessTokenExpiration:O}");
     Console.WriteLine("2. Evaluating flags with the issued token...");
 
     var response = await provider.EvaluateAsync(request, cancellation.Token);

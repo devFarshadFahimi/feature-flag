@@ -1,6 +1,7 @@
 using Domain.ValueObjects;
 
 namespace Infrastructure.Configurations;
+
 /// <summary>
 /// Configuration for Constraint value objects stored as a separate table
 /// (used by both FeatureStrategy and Segment).

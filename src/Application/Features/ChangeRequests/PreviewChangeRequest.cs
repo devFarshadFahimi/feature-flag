@@ -1,7 +1,7 @@
+using System.Text.Json;
 using Application.Features.FeatureEnvironments;
 using Application.Features.Segments.Commands.CreateSegment;
 using Domain.ValueObjects;
-using System.Text.Json;
 
 namespace Application.Features.ChangeRequests;
 
@@ -13,6 +13,9 @@ public record FeatureConfigurationState(string? Description, FeatureType Type, F
 internal sealed class PreviewChangeRequestHandler(IApplicationDbContext db) : QueryRequestHandler<PreviewChangeRequestQuery, ChangeRequestPreview>
 {
     /// <summary>Uses the real mutation path in memory; no changes, history or metrics are saved.</summary>
+    /// <param name="request">The request containing the operation's input and scope.</param>
+    /// <param name="ct">Cancels the operation and its database or network requests.</param>
+    /// <returns>The operation result, including the requested response data when applicable.</returns>
     public override async Task<ChangeRequestPreview> Handle(PreviewChangeRequestQuery request, CancellationToken ct)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct);
@@ -40,6 +43,7 @@ internal sealed class PreviewChangeRequestHandler(IApplicationDbContext db) : Qu
     }
 }
 
+/// <summary>Validates governed configuration changes and applies them through aggregate transitions.</summary>
 public static partial class ConfigurationChanges
 {
     public static EnvironmentConfigurationState Capture(FeatureEnvironment environment) => new(environment.Enabled, environment.Strategies
@@ -69,7 +73,30 @@ public static partial class ConfigurationChanges
         var payload = Parse(item);
         object state;
 
-        if (item.Action == ChangeActionNames.ReplaceSegmentConstraints)
+        if (item.Action == ChangeActionNames.RestoreSegment)
+        {
+            var segment = db.Segments.Local.SingleOrDefault(value => value.Id == payload.SegmentId) ?? await db.Segments
+                .Include(value => value.Constraints)
+                .SingleOrDefaultAsync(value => value.Id == payload.SegmentId, ct);
+
+            return JsonSerializer.SerializeToElement(
+                segment is null ? null : new SegmentConfigurationState(segment.Name, segment.Description, segment.IsPublic, segment.ProjectId, segment.Constraints
+                .Select(Capture)
+                .ToList()), Json);
+        }
+        else if (item.Action == ChangeActionNames.RestoreProject)
+        {
+            var project = await db.Projects.SingleAsync(value => value.Id == request.ProjectId, ct);
+
+            state = new ProjectConfigurationState(project.Name, project.Description, project.DefaultStickiness, project.FeatureLimitEnabled ? project.FeatureLimit : null);
+        }
+        else if (item.Action == ChangeActionNames.RestoreGlobalEnvironment)
+        {
+            var environment = await db.Environments.SingleAsync(value => value.Id == request.EnvironmentId, ct);
+
+            state = new GlobalEnvironmentState(environment.Name, environment.SortOrder, environment.Enabled, environment.Protected);
+        }
+        else if (item.Action == ChangeActionNames.ReplaceSegmentConstraints)
         {
             var segment = await db.Segments
                 .Include(s => s.Constraints)

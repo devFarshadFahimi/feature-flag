@@ -91,6 +91,11 @@ public interface IApplicationDbContext
         get;
     }
 
+    DbSet<Domain.Aggregates.UsageAggregate.EvaluationBatch> EvaluationBatches
+    {
+        get;
+    }
+
     DbSet<Domain.Aggregates.UsageAggregate.ImpressionBatch> ImpressionBatches
     {
         get;

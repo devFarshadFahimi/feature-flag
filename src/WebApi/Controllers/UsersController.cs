@@ -5,6 +5,7 @@ using Application.Features.Users.Commands.PromoteUser;
 using Application.Features.Users.Commands.UpdateUser;
 using Application.Features.Users.Queries.GetAllUsers;
 using Application.Features.Users.Queries.GetUserById;
+using Application.Features.Users.Queries.GetUsersSelective;
 
 namespace WebApi.Controllers;
 
@@ -21,6 +22,12 @@ public class UsersController(IMediator mediator) : ApiControllerBase(mediator)
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         return await SendAsync(new GetAllUsersQuery(), cancellationToken);
+    }
+
+    [HttpGet("Selective")]
+    public async Task<IActionResult> Selective(bool includeInactive = false, CancellationToken cancellationToken = default)
+    {
+        return await SendAsync(new GetUsersSelectiveQuery(includeInactive), cancellationToken);
     }
 
     [HttpGet("{id:guid}")]

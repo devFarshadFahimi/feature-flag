@@ -27,7 +27,10 @@ public sealed class FeatureFlagProvider
 
     private readonly string _password;
 
-    private TokenResponse? _session;
+    private readonly string _refreshEndpoint;
+    private readonly SemaphoreSlim _tokenGate = new(1, 1);
+
+    private TokenResponse? _tokens;
 
     public FeatureFlagProvider(HttpClient client, TimeProvider timeProvider, IOptions<FeatureFlagProviderOptions> options)
     {
@@ -42,58 +45,78 @@ public sealed class FeatureFlagProvider
         _timeProvider = timeProvider;
         _baseUri = new Uri(settings.BaseUri.TrimEnd('/') + "/");
         _authEndpoint = settings.AuthEndpoint;
+        _refreshEndpoint = settings.RefreshEndpoint;
         _username = settings.Username;
         _password = settings.Password;
     }
 
-    /// <summary>Issues an ordinary user session and stores its access token only after a valid login response.</summary>
+    /// <summary>Logs in explicitly and replaces stored tokens; a failed login clears previous credentials.</summary>
     /// <param name="cancellationToken">Cancels the HTTP request.</param>
-    /// <returns>The issued user session, including its access token and expiration.</returns>
+    /// <returns>The initial tokens and authenticated user. Later refreshes are handled internally.</returns>
     public async Task<TokenResponse> IssueTokenAsync(CancellationToken cancellationToken = default)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_baseUri, _authEndpoint))
-        {
-            Content = JsonContent.Create(new { email = _username, password = _password })
-        };
-        var token = await SendAsync<TokenResponse>(request, cancellationToken);
+        await _tokenGate.WaitAsync(cancellationToken);
 
-        if (string.IsNullOrWhiteSpace(token.AccessToken)
-            || token.AccessToken.Any(char.IsWhiteSpace)
-            || token.AccessTokenExpiration <= _timeProvider.GetUtcNow())
+        try
         {
-            throw new HttpRequestException("پاسخ ورود شامل توکن دسترسی معتبر نیست.");
+            Volatile.Write(ref _tokens, null);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_baseUri, _authEndpoint))
+            {
+                Content = JsonContent.Create(new { email = _username, password = _password })
+            };
+            var tokens = await SendAsync<TokenResponse>(request, cancellationToken);
+
+            ValidateTokens(tokens);
+            Volatile.Write(ref _tokens, tokens);
+
+            return tokens;
         }
-
-        Volatile.Write(ref _session, token);
-
-        return token;
+        finally
+        {
+            _tokenGate.Release();
+        }
     }
 
-    /// <summary>Uses a per-request bearer header; errors never become disabled flag decisions or trigger silent login.</summary>
+    /// <summary>Refreshes expired tokens or retries one unauthorized evaluation with rotated tokens; other errors propagate.</summary>
     /// <param name="evaluation">The project, environment, context and feature names to evaluate.</param>
-    /// <param name="cancellationToken">Cancels the HTTP request.</param>
+    /// <param name="cancellationToken">Cancels requests and waiting for another token operation.</param>
     /// <returns>Authoritative evaluation decisions and snapshot freshness metadata.</returns>
     public async Task<EvaluationResponse> EvaluateAsync(EvaluationRequest evaluation, CancellationToken cancellationToken = default)
     {
-        var token = Volatile.Read(ref _session);
-
-        if (token is null || token.AccessTokenExpiration <= _timeProvider.GetUtcNow())
-        {
-            throw new InvalidOperationException("ابتدا توکن دسترسی دریافت کنید؛ توکن فعلی موجود نیست یا منقضی شده است.");
-        }
-
         if (evaluation is null || evaluation.Context is null)
         {
             throw new ArgumentException("درخواست و زمینه ارزیابی الزامی است.", nameof(evaluation));
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_baseUri, EvaluationEndpoint))
-        {
-            Content = JsonContent.Create(evaluation)
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue(BearerScheme, token.AccessToken);
+        var tokens = await GetTokensAsync(cancellationToken);
 
-        var result = await SendAsync<EvaluationResponse>(request, cancellationToken);
+        if (tokens.AccessTokenExpiration <= _timeProvider.GetUtcNow())
+        {
+            tokens = await RefreshTokensAsync(tokens, cancellationToken);
+        }
+
+        EvaluationResponse result;
+
+        try
+        {
+            result = await SendEvaluationAsync(evaluation, tokens, cancellationToken);
+        }
+        catch (HttpRequestException exception) when (exception.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            tokens = await RefreshTokensAsync(tokens, cancellationToken);
+
+            try
+            {
+                result = await SendEvaluationAsync(evaluation, tokens, cancellationToken);
+            }
+            catch (HttpRequestException retryException) when (retryException.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                Interlocked.CompareExchange(ref _tokens, null, tokens);
+
+                throw;
+            }
+        }
 
         if (result.Features is null)
         {
@@ -101,6 +124,95 @@ public sealed class FeatureFlagProvider
         }
 
         return result;
+    }
+
+    private async Task<EvaluationResponse> SendEvaluationAsync(EvaluationRequest evaluation, TokenResponse tokens, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_baseUri, EvaluationEndpoint))
+        {
+            Content = JsonContent.Create(evaluation)
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue(BearerScheme, tokens.AccessToken);
+
+        return await SendAsync<EvaluationResponse>(request, cancellationToken);
+    }
+
+    /// <summary>Serializes one-time refresh rotation and reuses tokens already refreshed by another caller.</summary>
+    /// <param name="rejectedTokens">The token pair used by the rejected request; a newer pair is reused instead of refreshed twice.</param>
+    /// <param name="cancellationToken">Cancels the operation and its database or network requests.</param>
+    /// <returns>The current token pair after a serialized refresh, or the newer pair already obtained by another request.</returns>
+    private async Task<TokenResponse> RefreshTokensAsync(TokenResponse rejectedTokens, CancellationToken cancellationToken)
+    {
+        await _tokenGate.WaitAsync(cancellationToken);
+
+        try
+        {
+            var current = ReadTokens();
+
+            if (!ReferenceEquals(current, rejectedTokens)
+                && current.AccessTokenExpiration > _timeProvider.GetUtcNow())
+            {
+                return current;
+            }
+
+            // Clear before sending: a lost or invalid response may still have consumed the refresh token.
+            Volatile.Write(ref _tokens, null);
+
+            if (current.RefreshTokenExpiration <= _timeProvider.GetUtcNow())
+            {
+                throw new InvalidOperationException("توکن تمدید منقضی شده است؛ دوباره وارد شوید.");
+            }
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_baseUri, _refreshEndpoint))
+            {
+                Content = JsonContent.Create(new { accessToken = current.AccessToken, refreshToken = current.RefreshToken })
+            };
+            var tokens = await SendAsync<TokenResponse>(request, cancellationToken);
+
+            ValidateTokens(tokens);
+            Volatile.Write(ref _tokens, tokens);
+
+            return tokens;
+        }
+        finally
+        {
+            _tokenGate.Release();
+        }
+    }
+
+    private TokenResponse ReadTokens()
+    {
+        return Volatile.Read(ref _tokens)
+            ?? throw new InvalidOperationException("توکن دسترسی موجود نیست؛ ابتدا وارد شوید.");
+    }
+
+    private async Task<TokenResponse> GetTokensAsync(CancellationToken cancellationToken)
+    {
+        await _tokenGate.WaitAsync(cancellationToken);
+
+        try
+        {
+            return ReadTokens();
+        }
+        finally
+        {
+            _tokenGate.Release();
+        }
+    }
+
+    private void ValidateTokens(TokenResponse tokens)
+    {
+        var now = _timeProvider.GetUtcNow();
+
+        if (string.IsNullOrWhiteSpace(tokens.AccessToken)
+            || tokens.AccessToken.Any(char.IsWhiteSpace)
+            || tokens.AccessTokenExpiration <= now
+            || string.IsNullOrWhiteSpace(tokens.RefreshToken)
+            || tokens.RefreshToken.Any(char.IsWhiteSpace)
+            || tokens.RefreshTokenExpiration <= now)
+        {
+            throw new HttpRequestException("پاسخ احراز هویت شامل توکن‌های معتبر نیست.");
+        }
     }
 
     private async Task<T> SendAsync<T>(HttpRequestMessage request, CancellationToken cancellationToken)

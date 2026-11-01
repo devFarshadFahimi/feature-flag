@@ -22,6 +22,12 @@ public static class ChangeActionNames
 
     public const string SetGlobalProtection = "setGlobalProtection";
 
+    public const string RestoreSegment = "restoreSegment";
+
+    public const string RestoreProject = "restoreProject";
+
+    public const string RestoreGlobalEnvironment = "restoreGlobalEnvironment";
+
     public const string RestoreFeature = "restoreFeature";
 
     public const string RestoreEnvironment = "restoreEnvironment";

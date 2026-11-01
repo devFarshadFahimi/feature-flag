@@ -11,6 +11,10 @@
     <PackageVersion Include="EdgeServicesBuildingBlock.Contract" Version="$(BuildingBlockPackagesVersion)" />
     <PackageVersion Include="EdgeServicesBuildingBlock.Shared" Version="$(BuildingBlockPackagesVersion)" />
     <PackageVersion Include="feature-flag-provider" Version="1.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.14" />
+    <PackageVersion Include="Polly" Version="8.9.0" />
+    <PackageVersion Include="Polly.RateLimiting" Version="8.9.0" />
   </ItemGroup>
   <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
   <!-- 📂 Application Layer                                -->

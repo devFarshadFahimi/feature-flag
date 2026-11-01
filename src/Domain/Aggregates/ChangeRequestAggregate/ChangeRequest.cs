@@ -5,6 +5,10 @@ namespace Domain.Aggregates.ChangeRequestAggregate;
 
 public sealed class ChangeRequest : AggregateRoot<Guid>
 {
+    private ChangeRequest()
+    {
+    }
+
     public long Revision
     {
         get; private set;
@@ -69,6 +73,7 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
     {
         get; private set;
     }
+    = null!; // Populated by EF when the navigation is loaded.
 
     public Guid CreatedBy
     {
@@ -114,10 +119,6 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
 
     public List<Guid> Reviewers { get; private set; } = [];
 
-    private ChangeRequest()
-    {
-    }
-
     public static ChangeRequest Create(Guid projectId, Guid environmentId, Guid createdBy, string? title = null, string? description = null)
     {
         var cr = new ChangeRequest
@@ -135,6 +136,15 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
         cr.AddEvent(new ChangeRequestCreatedEvent(cr.Id, projectId, environmentId));
 
         return cr;
+    }
+
+    public static ChangeRequest CreateGlobal(Guid environmentId, Guid createdBy, string? title, string? description)
+    {
+        var request = Create(Guid.Empty, environmentId, createdBy, title, description);
+
+        request.ProjectId = null;
+
+        return request;
     }
 
     public void AddItem(ChangeRequestItem item)
@@ -254,15 +264,6 @@ public sealed class ChangeRequest : AggregateRoot<Guid>
         {
             Reviewers.Add(reviewerId);
         }
-    }
-
-    public static ChangeRequest CreateGlobal(Guid environmentId, Guid createdBy, string? title, string? description)
-    {
-        var request = Create(Guid.Empty, environmentId, createdBy, title, description);
-
-        request.ProjectId = null;
-
-        return request;
     }
 
     public void Capture(int required, Dictionary<string, long> revisions, string? fingerprint)

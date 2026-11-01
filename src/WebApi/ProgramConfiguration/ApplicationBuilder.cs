@@ -17,25 +17,28 @@ public static class ApplicationBuilder
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
+
             throw;
         }
+
         _ = app.UseExceptionHandler();
         app.MapOpenApiAndScalar();
         _ = app.UseHttpsRedirection();
-        _ = app.UseCors(p =>
+        _ = app.UseCors(policy =>
         {
-            _ = p.AllowAnyHeader();
-            _ = p.AllowAnyMethod();
-            _ = p.AllowAnyOrigin();
+            var origins = app.Configuration
+                .GetSection("Cors:AllowedOrigins")
+                .Get<string[]>() ?? [];
 
-            //var origins = app.Configuration
-            //    .GetSection("Cors:AllowedOrigins")
-            //    .Get<string[]>() ?? [];
-
-            //if (origins.Length > 0)
-            //{
-            //    _ = p.WithOrigins(origins);
-            //}
+            if (origins.Length > 0)
+            {
+                policy
+                    .WithOrigins(origins
+                    .Select(origin => origin.TrimEnd('/'))
+                    .ToArray())
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            }
         });
         _ = app.UseAuthentication();
         _ = app.UseAuthorization();
@@ -72,7 +75,8 @@ public static class ApplicationBuilder
                 .LogWarning(exception, "بررسی آمادگی پایگاه داده ناموفق بود.");
         }
 
-        return Results.Json(new
+        return Results.Json(
+            new
         {
             status = "unavailable",
             message = "پایگاه داده برای پاسخ‌گویی آماده نیست."

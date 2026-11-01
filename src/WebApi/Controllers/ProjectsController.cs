@@ -1,5 +1,4 @@
 using Application.Common.Services;
-using Microsoft.EntityFrameworkCore;
 using Application.Features.Projects.Commands.AddProjectMember;
 using Application.Features.Projects.Commands.Create;
 using Application.Features.Projects.Commands.Delete;
@@ -9,6 +8,7 @@ using Application.Features.Projects.Commands.Update;
 using Application.Features.Projects.Queries.GetAllProjects;
 using Application.Features.Projects.Queries.GetProjectById;
 using Application.Features.Projects.Queries.GetProjectsSelective;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Controllers;
 

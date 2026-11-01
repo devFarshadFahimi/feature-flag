@@ -22,18 +22,18 @@ public class TestController(IMediator mediator) : ApiControllerBase(mediator)
         using (Activity? activity = ActivitySource.StartActivity("ProcessOrder"))
         {
             // اضافه کردن Tag ها (Attributes در OTEL)
-            _ = (activity?.SetTag("order.id", 12345));
-            _ = (activity?.SetTag("order.customer", "Farshad"));
+            _ = activity?.SetTag("order.id", 12345);
+            _ = activity?.SetTag("order.customer", "Farshad");
             // شبیه‌سازی کار
             Console.WriteLine("Processing order...");
             counter.Add(1);
             // اضافه کردن Event داخل Activity
-            _ = (activity?.AddEvent(new ActivityEvent("OrderValidated")));
+            _ = activity?.AddEvent(new ActivityEvent("OrderValidated"));
             // یک Activity تو در تو (Child Activity)
-            using (Activity childActivity = ActivitySource.StartActivity("SaveOrderToDb"))
+            using (Activity? childActivity = ActivitySource.StartActivity("SaveOrderToDb"))
             {
-                _ = (childActivity?.SetTag("db.system", "sqlserver"));
-                _ = (childActivity?.SetTag("db.statement", "INSERT INTO Orders ..."));
+                _ = childActivity?.SetTag("db.system", "sqlserver");
+                _ = childActivity?.SetTag("db.statement", "INSERT INTO Orders ...");
                 Console.WriteLine("Saving order to DB...");
             }
         }

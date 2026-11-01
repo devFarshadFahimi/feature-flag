@@ -14,6 +14,7 @@ public sealed class ApiProblemHandler(ILogger<ApiProblemHandler> logger) : IExce
             System.Security.SecurityException => (403, "اجازه انجام این عملیات را ندارید."),
             KeyNotFoundException => (404, "رکورد درخواستی یافت نشد."),
             DbUpdateConcurrencyException => (409, "اطلاعات تغییر کرده است؛ دوباره بارگذاری کنید."),
+            DbUpdateException { InnerException: Npgsql.NpgsqlException { IsTransient: true } } => (503, "ذخیره اطلاعات موقتاً در دسترس نیست."),
             DbUpdateException => (409, "ذخیره اطلاعات با وضعیت فعلی سازگار نیست."),
             ArgumentException => (400, "اطلاعات درخواست معتبر نیست."),
             BusinessMakerFramework.Shared.Utilities.Exceptions.ValidationBehaviourException => (400, "اطلاعات درخواست معتبر نیست."),

@@ -1,10 +1,10 @@
+using System.Security.Claims;
 using System.Text;
+using Application.Common.Services;
 using Application.Common.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using Application.Common.Services;
-using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace WebApi.Configuration;
 
@@ -15,8 +15,9 @@ public static class JwtConfiguration
         var jwtSettings = configuration
             .GetSection(JwtSettings.SectionName)
             .Get<JwtSettings>() ?? throw new InvalidOperationException("تنظیمات احراز هویت پیکربندی نشده است.");
+        var secretKey = jwtSettings.SecretKey ?? string.Empty;
 
-        if (Encoding.UTF8.GetByteCount(jwtSettings.SecretKey ?? string.Empty) < 32 || string.IsNullOrWhiteSpace(jwtSettings.Issuer) || string.IsNullOrWhiteSpace(jwtSettings.Audience) || jwtSettings.AccessTokenExpirationMinutes is < 1 or > 1440 || jwtSettings.RefreshTokenExpirationDays is < 1 or > 90)
+        if (Encoding.UTF8.GetByteCount(secretKey) < 32 || string.IsNullOrWhiteSpace(jwtSettings.Issuer) || string.IsNullOrWhiteSpace(jwtSettings.Audience) || jwtSettings.AccessTokenExpirationMinutes is < 1 or > 1440 || jwtSettings.RefreshTokenExpirationDays is < 1 or > 90)
         {
             throw new InvalidOperationException("کلید امضا باید حداقل ۳۲ بایت باشد و صادرکننده، مخاطب و زمان اعتبار توکن‌ها به‌درستی تنظیم شوند.");
         }
@@ -34,7 +35,7 @@ public static class JwtConfiguration
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
                 ValidateIssuer = true,
                 ValidIssuer = jwtSettings.Issuer,
                 ValidateAudience = true,

@@ -1,7 +1,7 @@
 namespace Application.Features.Projects.Queries.GetProjectById;
 
 public record GetProjectByIdQuery(Guid Id) : IQueryRequest<ProjectResponse>;
-public record ProjectResponse(Guid Id, string Name, string Description, string DefaultStickiness, bool FeatureLimitEnabled, int? FeatureLimit, DateTime CreatedAt, List<ProjectMemberResponse> Members);
+public record ProjectResponse(Guid Id, string Name, string Description, string DefaultStickiness, bool FeatureLimitEnabled, int? FeatureLimit, DateTime CreatedAt, List<ProjectMemberResponse> Members, long Revision);
 public record ProjectMemberResponse(Guid UserId, string Role);
 internal class GetProjectByIdQueryHandler(IApplicationDbContext dbContext) : QueryRequestHandler<GetProjectByIdQuery, ProjectResponse>
 {

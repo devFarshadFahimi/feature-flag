@@ -8,6 +8,7 @@ public sealed class Constraint : BaseValueObject<Constraint>
     {
         get;
     }
+    = string.Empty;
 
     public ConstraintOperator Operator
     {
@@ -18,6 +19,7 @@ public sealed class Constraint : BaseValueObject<Constraint>
     {
         get;
     }
+    = [];
 
     public bool Inverted
     {

@@ -13,6 +13,15 @@ public static class ServiceCollections
 {
     public static WebApplicationBuilder AddServices(this WebApplicationBuilder builder)
     {
+        var origins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>() ?? [];
+
+        if (origins.Any(origin => !Uri.TryCreate(origin, UriKind.Absolute, out var uri) || uri.Scheme is not("http" or "https") || !string.IsNullOrEmpty(uri.UserInfo) || uri.GetLeftPart(UriPartial.Authority) != origin.TrimEnd('/')))
+        {
+            throw new InvalidOperationException("فهرست مبدأهای مجاز مرورگر معتبر نیست؛ نشانی دقیق مبدأ لازم است.");
+        }
+
         builder.Services.AddHateoasGeneratorService();
         _ = SetupOpenApi(builder);
         _ = builder.Services.AddHealthChecks();
@@ -26,10 +35,13 @@ public static class ServiceCollections
             {
                 Status = 400,
                 Title = "اطلاعات درخواست معتبر نیست.",
-                Extensions = { ["fields"] = context.ModelState
+                Extensions =
+                {
+                    ["fields"] = context.ModelState
             .Where(p => p.Value?.Errors.Count > 0)
             .Select(p => p.Key)
-            .ToArray() }
+            .ToArray()
+                }
             }));
         _ = builder.Services.AddFrameworkApiVersioning();
         _ = builder.Services.AddInfrastructureServices(builder.Configuration);

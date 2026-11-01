@@ -1,7 +1,7 @@
 namespace Application.Features.ChangeRequests.Commands.SubmitChangeRequestForReview;
 
 public record SubmitChangeRequestForReviewCommand(Guid Id) : ICommandRequest;
-internal class SubmitChangeRequestForReviewCommandHandler(IApplicationDbContext dbContext, BusinessMakerFramework.Shared.Abstractions.UserManagement.IUserInfoService actor) : CommandRequestHandler<SubmitChangeRequestForReviewCommand>
+internal class SubmitChangeRequestForReviewCommandHandler(IApplicationDbContext dbContext) : CommandRequestHandler<SubmitChangeRequestForReviewCommand>
 {
     public override async Task<Result> Handle(SubmitChangeRequestForReviewCommand request, CancellationToken cancellationToken)
     {

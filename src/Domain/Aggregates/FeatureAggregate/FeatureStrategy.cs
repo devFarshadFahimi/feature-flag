@@ -16,6 +16,7 @@ public sealed class FeatureStrategy : Entity<Guid>
     {
         get; private set;
     }
+    = StrategyParameters.CreateDefault();
 
     public bool Enabled { get; private set; } = true;
 

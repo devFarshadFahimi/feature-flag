@@ -4,6 +4,10 @@ namespace Domain.Aggregates.SegmentAggregate;
 
 public sealed class Segment : AggregateRoot<int>
 {
+    private Segment()
+    {
+    }
+
     public long Revision
     {
         get; private set;
@@ -25,8 +29,6 @@ public sealed class Segment : AggregateRoot<int>
     {
         get; private set;
     }
-
-    public void AssignProject(Guid? projectId) => ProjectId = projectId;
 
     public DateTime CreatedAt
     {
@@ -61,9 +63,26 @@ public sealed class Segment : AggregateRoot<int>
         return segment;
     }
 
-    private Segment()
+    /// <summary>Recreates a deleted segment identity while retaining its revision lineage.</summary>
+    /// <param name="id">The original identifier of the deleted segment.</param>
+    /// <param name="projectId">The identifier of the owning project.</param>
+    /// <param name="name">The restored segment's name.</param>
+    /// <param name="description">The optional restored segment description.</param>
+    /// <param name="isPublic">Whether the restored segment is marked public.</param>
+    /// <param name="revision">The previous revision from which the restored segment continues.</param>
+    /// <returns>The recreated segment with its original identifier and continued revision lineage.</returns>
+    public static Segment RestoreDeleted(int id, Guid? projectId, string name, string? description, bool isPublic, long revision)
     {
+        var segment = Create(name, description, isPublic: isPublic);
+
+        segment.Id = id;
+        segment.ProjectId = projectId;
+        segment.Revision = revision;
+
+        return segment;
     }
+
+    public void AssignProject(Guid? projectId) => ProjectId = projectId;
 
     public void Update(string name, string? description)
     {
@@ -93,6 +112,13 @@ public sealed class Segment : AggregateRoot<int>
         Constraints.Clear();
         Constraints.AddRange(constraints);
         Revision++;
+    }
+
+    public void RestoreConfiguration(string name, string? description, bool isPublic, IEnumerable<Constraint> constraints)
+    {
+        Update(name, description);
+        IsPublic = isPublic;
+        UpdateConstraints(constraints);
     }
 
     public void MarkAsUsed()

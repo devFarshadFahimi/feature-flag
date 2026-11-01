@@ -15,7 +15,7 @@ internal class CreateUserCommandHandler(IApplicationDbContext dbContext, IPasswo
             .Select(u => u.Role)
             .SingleAsync(cancellationToken);
 
-        if (currentRole < UserRole.Admin || request.Role == UserRole.RootAdmin && currentRole != UserRole.RootAdmin)
+        if (currentRole < UserRole.Admin || (request.Role == UserRole.RootAdmin && currentRole != UserRole.RootAdmin))
         {
             throw new System.Security.SecurityException("اجازه ایجاد کاربر با این نقش را ندارید.");
         }

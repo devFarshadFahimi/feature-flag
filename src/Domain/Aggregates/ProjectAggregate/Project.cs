@@ -111,6 +111,13 @@ public sealed class Project : AggregateRoot<Guid>
         _ = Members.Remove(member);
     }
 
+    public void RestoreConfiguration(string name, string description, string defaultStickiness, int? featureLimit)
+    {
+        Update(name, description);
+        DefaultStickiness = defaultStickiness;
+        SetFeatureLimit(featureLimit);
+    }
+
     public void SetFeatureLimit(int? limit)
     {
         FeatureLimitEnabled = limit.HasValue;

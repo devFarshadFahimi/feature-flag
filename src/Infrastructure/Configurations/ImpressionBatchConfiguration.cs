@@ -1,5 +1,5 @@
-using Domain.Aggregates.UsageAggregate;
 using Domain.Aggregates.ProjectAggregate;
+using Domain.Aggregates.UsageAggregate;
 
 namespace Infrastructure.Configurations;
 

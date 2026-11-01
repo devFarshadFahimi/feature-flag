@@ -9,6 +9,9 @@ namespace WebApi.Authorization;
 public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
 {
     /// <summary>Checks current resource permissions and serializes configuration writes with governance execution.</summary>
+    /// <param name="context">The MVC action context whose user, route, and arguments determine access.</param>
+    /// <param name="next">The next MVC action delegate, invoked only after authorization succeeds.</param>
+    /// <returns>A task that completes after authorization and any permitted action execution.</returns>
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         var controller = context.RouteData.Values["controller"]?.ToString();
@@ -190,7 +193,7 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
             }
         }
 
-        var owner = controller == "Projects" || controller == "ChangeRequests" && action is "Approve" or "Reject" or "Apply" or "Schedule";
+        var owner = controller == "Projects" || (controller == "ChangeRequests" && action is "Approve" or "Reject" or "Apply" or "Schedule");
 
         if (!admin && write && user.Role < UserRole.Editor)
         {
@@ -208,7 +211,7 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
                 return;
             }
 
-            if (!admin && !await db.ProjectMembers.AnyAsync(m => m.ProjectId == projectId && m.UserId == userId && (!write || owner && m.Role == ProjectRole.Owner || !owner && m.Role >= ProjectRole.Member), ct))
+            if (!admin && !await db.ProjectMembers.AnyAsync(m => m.ProjectId == projectId && m.UserId == userId && (!write || (owner && m.Role == ProjectRole.Owner) || (!owner && m.Role >= ProjectRole.Member)), ct))
             {
                 context.Result = Problem(403, "اجازه دسترسی به این پروژه ندارید.");
 

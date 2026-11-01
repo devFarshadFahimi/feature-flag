@@ -1,17 +1,20 @@
+using System.Text.Json;
 using Application.Features.ChangeRequests;
+using BusinessMakerFramework.Shared.Abstractions.UserManagement;
 using Domain.Aggregates.FeatureAggregate;
+using Domain.Aggregates.HistoryAggregate;
 using Domain.Aggregates.ProjectAggregate;
 using Domain.Aggregates.SegmentAggregate;
-using BusinessMakerFramework.Shared.Abstractions.UserManagement;
-using Domain.Aggregates.HistoryAggregate;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using System.Text.Json;
 
 namespace Infrastructure;
 
+/// <summary>Coordinates persistence, configuration revisions, and configuration audit history.</summary>
 public partial class ApplicationDbContext
 {
     /// <summary>Advances configuration revisions and appends safe snapshots in the same save and transaction.</summary>
+    /// <param name="cancellationToken">Cancels the operation and its database or network requests.</param>
+    /// <returns>The number of state entries written to the database.</returns>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         ChangeTracker.DetectChanges();
@@ -94,6 +97,10 @@ public partial class ApplicationDbContext
     private static bool HasTemporaryKey(EntityEntry entry) => entry.Metadata.FindPrimaryKey()!.Properties.Any(p => entry.Property(p.Name).IsTemporary);
 
     /// <summary>Reads the persisted before-image and captures children for restorable configuration history.</summary>
+    /// <param name="entry">The tracked entity whose safe configuration snapshot is requested.</param>
+    /// <param name="original">Whether to read the persisted before-image instead of current values.</param>
+    /// <param name="ct">Cancels the operation and its database or network requests.</param>
+    /// <returns>The serialized configuration snapshot, excluding credentials and runtime telemetry.</returns>
     private async Task<string> HistorySnapshotAsync(EntityEntry entry, bool original, CancellationToken ct)
     {
         var values = entry.Properties

@@ -11,9 +11,12 @@ public interface IConfigurationSnapshots
 
 public record EvaluateFlagsCommand(Guid ProjectId, Guid EnvironmentId, string AppName, EvaluationContext Context, List<string>? FeatureNames = null, Dictionary<string, bool>? Defaults = null, bool Preview = false) : IQueryRequest<EvaluationResponse>;
 public record EvaluationResponse(IReadOnlyList<FlagDecision> Features, DateTimeOffset EvaluatedAt, DateTimeOffset SnapshotLoadedAt, bool Stale, int RefreshAfterSeconds, int MaxStaleSeconds);
-internal sealed class EvaluateFlagsHandler(IApplicationDbContext db, IConfigurationSnapshots snapshots, IUserInfoService actor, IOptions<EvaluationSettings> options, Microsoft.Extensions.Logging.ILogger<EvaluateFlagsHandler> logger) : QueryRequestHandler<EvaluateFlagsCommand, EvaluationResponse>
+internal sealed class EvaluateFlagsHandler(IApplicationDbContext db, IConfigurationSnapshots snapshots, IUserInfoService actor, IOptions<EvaluationSettings> options) : QueryRequestHandler<EvaluateFlagsCommand, EvaluationResponse>
 {
-    /// <summary>Authorizes every call before reading cached rules; telemetry failures never change the decision.</summary>
+    /// <summary>Authorizes every call before cached rules and durably records usage before acknowledging decisions.</summary>
+    /// <param name="request">The request containing the operation's input and scope.</param>
+    /// <param name="ct">Cancels the operation and its database or network requests.</param>
+    /// <returns>The operation result, including the requested response data when applicable.</returns>
     public override async Task<EvaluationResponse> Handle(EvaluateFlagsCommand request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.AppName) || request.AppName.Length > 128 || request.Context is null || request.FeatureNames?.Count > 100 || request.FeatureNames?.Any(n => string.IsNullOrEmpty(n) || n.Length > 255) == true || request.Defaults?.Count > 100 || request.Context.Properties?.Count > 50 || request.Context.Properties?.Any(p => p.Key.Length > 128 || p.Value is null || p.Value.Length > 1024) == true || new[]
@@ -51,14 +54,7 @@ internal sealed class EvaluateFlagsHandler(IApplicationDbContext db, IConfigurat
 
         if (!request.Preview)
         {
-            try
-            {
-                await Metrics.FlagMetrics.RecordEvaluationAsync(db, request.ProjectId, request.EnvironmentId, request.AppName, results, ct);
-            }
-            catch (Exception exception) when (exception is not OperationCanceledException)
-            {
-                Microsoft.Extensions.Logging.LoggerExtensions.LogError(logger, exception, "ثبت آمار ارزیابی ناموفق بود.");
-            }
+            await Metrics.FlagMetrics.RecordEvaluationAsync(db, request.ProjectId, request.EnvironmentId, request.AppName, results, ct);
         }
 
         return new(results, now, snapshot.LoadedAt, now - snapshot.LoadedAt >= TimeSpan.FromSeconds(options.Value.RefreshSeconds), options.Value.RefreshSeconds, options.Value.MaxStaleSeconds);

@@ -11,11 +11,13 @@ public sealed class RefreshToken : Entity<int>
     {
         get; private set;
     }
+    = string.Empty;
 
     public string JwtId
     {
         get; private set;
     }
+    = string.Empty;
 
     public bool IsUsed
     {

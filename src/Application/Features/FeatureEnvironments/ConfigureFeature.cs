@@ -29,6 +29,12 @@ public static class FeatureConfiguration
     }
 
     /// <summary>Validates and replaces one strategy while touching the environment revision used by direct writes and approvals.</summary>
+    /// <param name="db">The application database context participating in the current unit of work.</param>
+    /// <param name="environment">The loaded feature-environment aggregate to configure.</param>
+    /// <param name="input">The configuration values to validate and apply.</param>
+    /// <param name="ct">Cancels the operation and its database or network requests.</param>
+    /// <param name="validateOnly">Whether to validate without mutating the tracked aggregate.</param>
+    /// <returns>The configured strategy identifier, or an empty identifier when only validating a new strategy.</returns>
     public static async Task<Guid> ConfigureAsync(IApplicationDbContext db, FeatureEnvironment environment, ConfigureStrategyCommand input, CancellationToken ct, bool validateOnly = false)
     {
         RequireRevision(input.ExpectedRevision, environment.Revision);

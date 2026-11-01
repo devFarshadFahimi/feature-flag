@@ -141,3 +141,20 @@ export interface SegmentsEndpoints {
  * permissions. isPublic never bypasses JWT/membership. Changes affecting protected configurations need requests. */
 export interface CreateSegmentCommand { projectId?: Uuid | null; }
 export interface SegmentResponse { projectId: Uuid | null; revision: number; }
+
+/** Dropdown contract: GET /api/v1/Segments/Selective; bearer JWT, no body, 200 SelectiveDTO[].
+ * Persian errors: 400 malformed query, 401 unauthenticated, 403 denied, 404 unknown explicit project,
+ * 503 unavailable. Empty matches return []; labels are display text and keys are submitted IDs.
+ * projectId omitted selects all visible project segments; includeShared defaults true and adds shared
+ * segments. isPublic never bypasses project permissions. value is the segment name.
+ * Frontend: load these options for related forms and submit key, never a typed entity ID or value. */
+export type SegmentSelectiveDTO = import("./Common").SelectiveDTO<number>;
+export interface SegmentsEndpoints {
+  selective: {
+    method: "GET"; path: "/api/v1/Segments/Selective"; auth: "bearer";
+    pathParams: never; query: { projectId?: Uuid | null; includeShared?: boolean }; body: never;
+    success: SegmentSelectiveDTO[]; successStatus: 200;
+  };
+}
+
+/** DELETE returns Persian 409 while any strategy references the segment; detach those references first. */

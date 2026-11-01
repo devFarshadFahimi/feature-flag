@@ -165,3 +165,6 @@ export interface ProjectsEndpoints {
     success: ProjectSelectiveDTO[]; successStatus: 200;
   };
 }
+
+/** Current project configuration revision; use it as expectedRevision for reviewed project restoration. */
+export interface ProjectResponse { revision: number; }
