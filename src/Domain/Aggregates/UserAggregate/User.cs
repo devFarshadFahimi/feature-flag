@@ -5,6 +5,10 @@ namespace Domain.Aggregates.UserAggregate;
 
 public sealed class User : AggregateRoot<Guid>
 {
+    public const int FailedLoginLimit = 5;
+
+    public const int LoginLockoutMinutes = 5;
+
     public string Email
     {
         get; private set;
@@ -31,6 +35,16 @@ public sealed class User : AggregateRoot<Guid>
     }
 
     public Guid SecurityVersion { get; private set; } = Guid.NewGuid();
+
+    public int FailedLoginAttempts
+    {
+        get; private set;
+    }
+
+    public DateTime? LockedUntil
+    {
+        get; private set;
+    }
 
     public DateTime CreatedAt
     {
@@ -84,6 +98,8 @@ public sealed class User : AggregateRoot<Guid>
     public void UpdatePassword(string newPasswordHash)
     {
         PasswordHash = newPasswordHash;
+        FailedLoginAttempts = 0;
+        LockedUntil = null;
         RevokeAllRefreshTokens();
     }
 
@@ -107,6 +123,31 @@ public sealed class User : AggregateRoot<Guid>
     public void RecordLogin()
     {
         LastLoginAt = DateTime.UtcNow;
+        FailedLoginAttempts = 0;
+        LockedUntil = null;
+    }
+
+    /// <summary>Temporarily locks the account after consecutive failures; an expired lock starts a fresh attempt window.</summary>
+    /// <param name = "now">The UTC time of the failed authentication attempt.</param>
+    public void RecordFailedLogin(DateTime now)
+    {
+        if (LockedUntil > now)
+        {
+            return;
+        }
+
+        if (LockedUntil.HasValue)
+        {
+            FailedLoginAttempts = 0;
+            LockedUntil = null;
+        }
+
+        FailedLoginAttempts++;
+
+        if (FailedLoginAttempts >= FailedLoginLimit)
+        {
+            LockedUntil = now.AddMinutes(LoginLockoutMinutes);
+        }
     }
 
     public RefreshToken AddRefreshToken(string token, string jwtId, TimeSpan expiration)
@@ -120,11 +161,13 @@ public sealed class User : AggregateRoot<Guid>
 
     public void RevokeRefreshToken(string token)
     {
-        var refreshToken = _refreshTokens.FirstOrDefault(rt => rt.Token == token) ?? throw new InvalidEntityStateException("توکن تمدید یافت نشد.");
+        var tokenHash = RefreshToken.Hash(token);
+        var refreshToken = _refreshTokens.FirstOrDefault(rt => rt.Token == tokenHash) ?? throw new InvalidEntityStateException("توکن تمدید یافت نشد.");
 
         refreshToken.Revoke();
     }
 
+    /// <summary>Invalidates access tokens and revokes loaded refresh tokens; callers must also revoke any unloaded tokens.</summary>
     public void RevokeAllRefreshTokens()
     {
         SecurityVersion = Guid.NewGuid();

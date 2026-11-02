@@ -6,6 +6,29 @@ namespace Application.Features.Metrics;
 
 public record ImpressionInput(string FeatureName, bool Enabled, string Variant, long Count);
 public record ReportImpressionsCommand(Guid ProjectId, Guid EnvironmentId, string AppName, Guid BatchId, List<ImpressionInput> Counts) : ICommandRequest;
+public sealed class BackgroundWorkSettings
+{
+    public int TickSeconds { get; set; } = 1;
+
+    public int ScheduledPerTick { get; set; } = 20;
+
+    public int UsageBatchesPerTick { get; set; } = 200;
+
+    public int CleanupRowsPerTick { get; set; } = 500;
+
+    public int MaxPendingBatches { get; set; } = 100_000;
+
+    public int QuarantineRetentionDays { get; set; } = 30;
+
+    public int TokenRetentionDays { get; set; } = 7;
+
+    public int DeduplicationRetentionDays { get; set; } = 7;
+
+    public int UsageRetentionDays { get; set; } = 90;
+
+    public bool IsValid() => TickSeconds is >= 1 and <= 60 && ScheduledPerTick is >= 1 and <= 200 && UsageBatchesPerTick is >= 1 and <= 1000 && CleanupRowsPerTick is >= 1 and <= 5000 && MaxPendingBatches is >= 1 and <= 1_000_000 && QuarantineRetentionDays is >= 1 and <= 3650 && TokenRetentionDays is >= 1 and <= 3650 && DeduplicationRetentionDays is >= 1 and <= 3650 && UsageRetentionDays is >= 1 and <= 3650;
+}
+
 public static class FlagMetrics
 {
     public static async Task RecordAsync(IApplicationDbContext db, Guid projectId, Guid environmentId, string appName, IEnumerable<ImpressionInput> counts, bool impression, CancellationToken ct, DateTime? recordedAt = null)
@@ -26,14 +49,15 @@ public static class FlagMetrics
     }
 
     /// <summary>Durably accepts evaluation usage before returning decisions; workers aggregate each batch atomically.</summary>
-    /// <param name="db">The application database context participating in the current unit of work.</param>
-    /// <param name="projectId">The identifier of the owning project.</param>
-    /// <param name="environmentId">The identifier of the evaluation environment.</param>
-    /// <param name="appName">The consuming application's name used to group usage.</param>
-    /// <param name="decisions">The evaluated flag decisions to record as usage.</param>
-    /// <param name="ct">Cancels the operation and its database or network requests.</param>
+    /// <param name = "db">The application database context participating in the current unit of work.</param>
+    /// <param name = "projectId">The identifier of the owning project.</param>
+    /// <param name = "environmentId">The identifier of the evaluation environment.</param>
+    /// <param name = "appName">The consuming application's name used to group usage.</param>
+    /// <param name = "decisions">The evaluated flag decisions to record as usage.</param>
+    /// <param name = "maxPendingBatches">The hard admission limit shared by all evaluation workers.</param>
+    /// <param name = "ct">Cancels the operation and its database or network requests.</param>
     /// <returns>A task that completes after evaluation usage has been durably accepted.</returns>
-    public static async Task RecordEvaluationAsync(IApplicationDbContext db, Guid projectId, Guid environmentId, string appName, IReadOnlyList<FlagDecision> decisions, CancellationToken ct)
+    public static async Task RecordEvaluationAsync(IApplicationDbContext db, Guid projectId, Guid environmentId, string appName, IReadOnlyList<FlagDecision> decisions, int maxPendingBatches, CancellationToken ct)
     {
         var counts = decisions
             .Where(decision => decision.Reason != "not_found")
@@ -45,11 +69,26 @@ public static class FlagMetrics
             return;
         }
 
-        db.EvaluationBatches.Add(new EvaluationBatch { ProjectId = projectId, EnvironmentId = environmentId, AppName = appName, RecordedAt = DateTime.UtcNow, Counts = JsonSerializer.Serialize(counts) });
-
         try
         {
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+            // Serialize admission across workers so concurrent requests cannot exceed the queue cap.
+            await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(8610045)", ct);
+
+            var pending = await db.EvaluationBatches
+                .Where(batch => batch.Status == EvaluationBatch.PendingStatus)
+                .Take(Math.Clamp(maxPendingBatches, 1, 1_000_000))
+                .CountAsync(ct);
+
+            if (pending >= Math.Clamp(maxPendingBatches, 1, 1_000_000))
+            {
+                throw new InvalidOperationException("ظرفیت صف آمار تکمیل است؛ کمی بعد دوباره تلاش کنید.");
+            }
+
+            db.EvaluationBatches.Add(new EvaluationBatch { ProjectId = projectId, EnvironmentId = environmentId, AppName = appName, RecordedAt = DateTime.UtcNow, Counts = JsonSerializer.Serialize(counts) });
+
             await db.SaveChangeAsync(ct);
+            await transaction.CommitAsync(ct);
         }
         catch (DbUpdateException exception)
         {

@@ -16,7 +16,7 @@ public static class DatabaseSeeder
     private const string PasswordKey = "Bootstrap:Password";
 
     /// <summary>Creates the explicitly configured login once, preserving existing accounts and the root-admin guard.</summary>
-    /// <param name="serviceProvider">The service provider used to resolve a scoped database and bootstrap settings.</param>
+    /// <param name = "serviceProvider">The service provider used to resolve a scoped database and bootstrap settings.</param>
     /// <returns>A task that completes when configured administrator initialization has finished.</returns>
     public static async Task SeedAdminUserAsync(IServiceProvider serviceProvider)
     {
@@ -31,7 +31,7 @@ public static class DatabaseSeeder
         var email = configuration[EmailKey];
         var password = configuration[PasswordKey];
 
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || password.Length < 12)
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || password.Length < 12 || System.Text.Encoding.UTF8.GetByteCount(password) > 72)
         {
             throw new InvalidOperationException("ایمیل و گذرواژه امن برای راه‌اندازی اولیه الزامی است.");
         }

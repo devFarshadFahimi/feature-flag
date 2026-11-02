@@ -2,33 +2,41 @@ using System.Text.Json;
 using Application.Features.ChangeRequests;
 using Application.Features.Evaluations;
 using Application.Features.Metrics;
+using Domain.Aggregates.UsageAggregate;
 using Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Infrastructure.Services;
 
-public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfigurationSnapshots snapshots, ILogger<ScheduledChangeExecutor> logger) : BackgroundService
+public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfigurationSnapshots snapshots, ILogger<ScheduledChangeExecutor> logger, IOptions<BackgroundWorkSettings> options) : BackgroundService
 {
+    /// <summary>Bounds each work category and isolates scheduling, aggregation, and retention failures.</summary>
+    /// <param name = "stoppingToken">Cancels work during host shutdown.</param>
+    /// <returns>A task representing the bounded background work loop.</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(Math.Clamp(options.Value.TickSeconds, 1, 60)));
 
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             try
             {
                 // Bound work per tick; never hold one transaction for an unbounded queue.
-                for (var i = 0; i < 20 && !stoppingToken.IsCancellationRequested; i++)
+                await RunPhaseAsync(
+                    async ct =>
                 {
-                    if (!await ExecuteOneAsync(stoppingToken))
+                    for (var i = 0; i < Math.Clamp(options.Value.ScheduledPerTick, 1, 200); i++)
                     {
-                        break;
+                        if (!await ExecuteOneAsync(ct))
+                        {
+                            break;
+                        }
                     }
-                }
-
-                await AggregateUsageAsync(stoppingToken);
+                }, "اجرای تغییرات زمان‌بندی‌شده ناموفق بود.", stoppingToken);
+                await RunPhaseAsync(AggregateUsageAsync, "تجمیع آمار ارزیابی ناموفق بود.", stoppingToken);
                 await CleanupAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -42,8 +50,45 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
         }
     }
 
+    private static bool IsInvalidBatch(Exception exception)
+    {
+        if (exception is OperationCanceledException || exception is Npgsql.NpgsqlException { IsTransient: true })
+        {
+            return false;
+        }
+
+        if (exception is JsonException or ArgumentException or OverflowException)
+        {
+            return true;
+        }
+
+        if (exception is Npgsql.PostgresException postgres)
+        {
+            return postgres.SqlState.StartsWith("22", StringComparison.Ordinal) || postgres.SqlState.StartsWith("23", StringComparison.Ordinal);
+        }
+
+        return exception is DbUpdateException { InnerException: { } inner } && IsInvalidBatch(inner);
+    }
+
+    /// <summary>Isolates failures so unrelated work categories continue during the same tick.</summary>
+    private async Task RunPhaseAsync(Func<CancellationToken, Task> action, string failure, CancellationToken ct)
+    {
+        try
+        {
+            await action(ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "{Failure}", failure);
+        }
+    }
+
     /// <summary>Claims one due request and commits its changes atomically; failed attempts recover in a fresh transaction.</summary>
-    /// <param name="ct">Cancels the operation and its database or network requests.</param>
+    /// <param name = "ct">Cancels the operation and its database or network requests.</param>
     /// <returns>Whether a due request was claimed for processing.</returns>
     private async Task<bool> ExecuteOneAsync(CancellationToken ct)
     {
@@ -123,62 +168,130 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
         }
     }
 
-    /// <summary>Claims durable batches across workers; aggregate writes and acknowledgement commit together.</summary>
-    /// <param name="ct">Cancels the operation and its database or network requests.</param>
-    /// <returns>A task that completes after the claimed usage batches are aggregated and acknowledged together.</returns>
+    /// <summary>Locks one batch at a time; aggregate writes and acknowledgement commit together across workers.</summary>
     private async Task AggregateUsageAsync(CancellationToken ct)
     {
-        using var scope = scopes.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-
-        var batches = await db.EvaluationBatches
-            .FromSqlRaw("""
-                SELECT * FROM "App"."EvaluationBatch"
-                ORDER BY "RecordedAt", "Id" LIMIT 200 FOR UPDATE SKIP LOCKED
-                """)
-            .ToListAsync(ct);
-
-        foreach (var group in batches.GroupBy(batch => new { batch.ProjectId, batch.EnvironmentId, batch.AppName, Hour = new DateTime(batch.RecordedAt.Year, batch.RecordedAt.Month, batch.RecordedAt.Day, batch.RecordedAt.Hour, 0, 0, DateTimeKind.Utc) }))
+        for (var i = 0; i < Math.Clamp(options.Value.UsageBatchesPerTick, 1, 1000); i++)
         {
-            var counts = group
-                .SelectMany(batch => JsonSerializer.Deserialize<ImpressionInput[]>(batch.Counts) ?? [])
-                .GroupBy(count => new { count.FeatureName, count.Enabled, count.Variant })
-                .Select(items => new ImpressionInput(items.Key.FeatureName, items.Key.Enabled, items.Key.Variant, items.Sum(item => item.Count)))
-                .ToArray();
-            var recordedAt = group.Max(batch => batch.RecordedAt);
-            var names = counts
-                .Select(count => count.FeatureName)
-                .ToArray();
+            using var scope = scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+            var batch = await db.EvaluationBatches
+                .FromSqlInterpolated($"""
+                    SELECT * FROM "App"."EvaluationBatch"
+                    WHERE "Status" = {EvaluationBatch.PendingStatus}
+                    ORDER BY "RecordedAt", "Id" LIMIT 1 FOR UPDATE SKIP LOCKED
+                    """)
+                .SingleOrDefaultAsync(ct);
 
-            await FlagMetrics.RecordAsync(db, group.Key.ProjectId, group.Key.EnvironmentId, group.Key.AppName, counts, false, ct, recordedAt);
-            await db.FeatureEnvironments
-                .Where(environment => environment.EnvironmentId == group.Key.EnvironmentId && environment.Feature.ProjectId == group.Key.ProjectId && names.Contains(environment.Feature.Name) && (environment.LastSeenAt == null || environment.LastSeenAt < recordedAt))
-                .ExecuteUpdateAsync(update => update.SetProperty(environment => environment.LastSeenAt, recordedAt), ct);
+            if (batch is null)
+            {
+                return;
+            }
+
+            // A savepoint retains the claim while rolling back every partial aggregate write.
+            await transaction.CreateSavepointAsync("usage_batch", ct);
+
+            try
+            {
+                if (batch.Counts is null || batch.Counts.Length > 1_048_576)
+                {
+                    throw new ArgumentException("حجم داده دسته آمار معتبر نیست.");
+                }
+
+                var counts = JsonSerializer.Deserialize<ImpressionInput[]>(batch.Counts);
+
+                if (batch.ProjectId == Guid.Empty || batch.EnvironmentId == Guid.Empty || string.IsNullOrWhiteSpace(batch.AppName) || batch.AppName.Length > 128 || batch.RecordedAt.Kind != DateTimeKind.Utc || batch.RecordedAt < DateTime.UnixEpoch || batch.RecordedAt > DateTime.UtcNow.AddMinutes(5) || counts is null || counts.Length is < 1 or > 1000 || counts.Any(count => count is null || string.IsNullOrWhiteSpace(count.FeatureName) || count.FeatureName.Length > 255 || string.IsNullOrWhiteSpace(count.Variant) || count.Variant.Length > 128 || count.Count is < 1 or > 1_000_000_000))
+                {
+                    throw new ArgumentException("اطلاعات دسته آمار معتبر نیست.");
+                }
+
+                if (!await db.Projects.AnyAsync(project => project.Id == batch.ProjectId, ct) || !await db.Environments.AnyAsync(environment => environment.Id == batch.EnvironmentId, ct))
+                {
+                    throw new ArgumentException("پروژه یا محیط دسته آمار یافت نشد.");
+                }
+
+                var grouped = counts
+                    .GroupBy(count => new { count.FeatureName, count.Enabled, count.Variant })
+                    .Select(items => new ImpressionInput(items.Key.FeatureName, items.Key.Enabled, items.Key.Variant, items.Sum(item => item.Count)))
+                    .ToArray();
+                var names = grouped
+                    .Select(count => count.FeatureName)
+                    .ToArray();
+
+                await FlagMetrics.RecordAsync(db, batch.ProjectId, batch.EnvironmentId, batch.AppName, grouped, false, ct, batch.RecordedAt);
+                await db.FeatureEnvironments
+                    .Where(environment => environment.EnvironmentId == batch.EnvironmentId && environment.Feature.ProjectId == batch.ProjectId && names.Contains(environment.Feature.Name) && (environment.LastSeenAt == null || environment.LastSeenAt < batch.RecordedAt))
+                    .ExecuteUpdateAsync(update => update.SetProperty(environment => environment.LastSeenAt, batch.RecordedAt), ct);
+                db.EvaluationBatches.Remove(batch);
+
+                await db.SaveChangeAsync(ct);
+            }
+            catch (Exception exception) when (IsInvalidBatch(exception))
+            {
+                await transaction.RollbackToSavepointAsync("usage_batch", ct);
+                db.Entry(batch).State = EntityState.Unchanged;
+                batch.Status = EvaluationBatch.QuarantinedStatus;
+                batch.QuarantinedAt = DateTime.UtcNow;
+                batch.FailureReason = "دسته آمار به دلیل داده نامعتبر، سرریز شمارنده یا ناسازگاری ذخیره‌سازی قرنطینه شد.";
+
+                await db.SaveChangeAsync(ct);
+
+                logger.LogWarning(exception, "دسته آمار {BatchId} برای بررسی قرنطینه شد.", batch.Id);
+            }
+
+            await transaction.CommitAsync(ct);
         }
-
-        db.EvaluationBatches.RemoveRange(batches);
-
-        await db.SaveChangeAsync(ct);
-        await transaction.CommitAsync(ct);
     }
 
+    /// <summary>Deletes bounded expired data; token evidence survives until expiry plus the retention window.</summary>
     private async Task CleanupAsync(CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var deduplicationCutoff = DateTime.UtcNow.AddDays(-7);
-        var aggregateCutoff = DateTime.UtcNow.AddDays(-90);
-        // PostgreSQL tuple identity bounds each delete without loading metrics into process memory.
-        await db.Database.ExecuteSqlInterpolatedAsync(
-            $"""
-            DELETE FROM "App"."ImpressionBatch" WHERE ctid IN
-            (SELECT ctid FROM "App"."ImpressionBatch" WHERE "ReceivedAt" < {deduplicationCutoff} LIMIT 500)
-            """, ct);
-        await db.Database.ExecuteSqlInterpolatedAsync(
-            $"""
-            DELETE FROM "App"."FlagUsage" WHERE ctid IN
-            (SELECT ctid FROM "App"."FlagUsage" WHERE "Hour" < {aggregateCutoff} LIMIT 500)
-            """, ct);
+        var settings = options.Value;
+        var limit = Math.Clamp(settings.CleanupRowsPerTick, 1, 5000);
+        var deduplicationCutoff = DateTime.UtcNow.AddDays(-Math.Clamp(settings.DeduplicationRetentionDays, 1, 3650));
+        var aggregateCutoff = DateTime.UtcNow.AddDays(-Math.Clamp(settings.UsageRetentionDays, 1, 3650));
+        var quarantineCutoff = DateTime.UtcNow.AddDays(-Math.Clamp(settings.QuarantineRetentionDays, 1, 3650));
+        var tokenCutoff = DateTime.UtcNow.AddDays(-Math.Clamp(settings.TokenRetentionDays, 1, 3650));
+
+        await RunPhaseAsync(
+            async token =>
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                    DELETE FROM "App"."ImpressionBatch" WHERE ctid IN
+                    (SELECT ctid FROM "App"."ImpressionBatch" WHERE "ReceivedAt" < {deduplicationCutoff} LIMIT {limit})
+                    """, token);
+        }, "پاک‌سازی سوابق تکرار آمار ناموفق بود.", ct);
+        await RunPhaseAsync(
+            async token =>
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                    DELETE FROM "App"."FlagUsage" WHERE ctid IN
+                    (SELECT ctid FROM "App"."FlagUsage" WHERE "Hour" < {aggregateCutoff} LIMIT {limit})
+                    """, token);
+        }, "پاک‌سازی آمار قدیمی ناموفق بود.", ct);
+        await RunPhaseAsync(
+            async token =>
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                    DELETE FROM "App"."EvaluationBatch" WHERE ctid IN
+                    (SELECT ctid FROM "App"."EvaluationBatch" WHERE "Status" = {EvaluationBatch.QuarantinedStatus} AND "QuarantinedAt" < {quarantineCutoff} LIMIT {limit})
+                    """, token);
+        }, "پاک‌سازی دسته‌های قرنطینه‌شده ناموفق بود.", ct);
+        await RunPhaseAsync(
+            async token =>
+        {
+            await db
+                .Set<Domain.Aggregates.UserAggregate.RefreshToken>()
+                .Where(refresh => refresh.ExpiresAt < tokenCutoff)
+                .OrderBy(refresh => refresh.ExpiresAt)
+                .Take(limit)
+                .ExecuteDeleteAsync(token);
+        }, "پاک‌سازی نشست‌های منقضی‌شده ناموفق بود.", ct);
     }
 }

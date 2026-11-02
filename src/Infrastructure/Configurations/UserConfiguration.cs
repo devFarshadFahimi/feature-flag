@@ -37,6 +37,11 @@ public class UserConfiguration : ApplicationConfiguration<User>
             .Property(u => u.CreatedAt)
             .IsRequired();
         _ = builder.Property(u => u.LastLoginAt);
+        _ = builder
+            .Property(u => u.FailedLoginAttempts)
+            .IsRequired()
+            .HasDefaultValue(0);
+        _ = builder.Property(u => u.LockedUntil);
         // Indexes
         _ = builder
             .HasIndex(u => u.Email)

@@ -2,7 +2,7 @@
  * All actions require an active bearer JWT and Admin/RootAdmin, enforced by the resource filter.
  * Create form: email/password, optional role (numeric Viewer=0), optional name. Update sends id, name, email;
  * null profile fields leave existing values unchanged. Role change body id must match route id.
- * EF limits: email/name 255; email is unique. No password-strength rule is implemented here.
+ * EF limits: email/name 255; email is unique. Passwords require at least 12 UTF-16 code units and at most 72 UTF-8 bytes.
  * Read DTO differs from AuthUserResponse. Never display/store password hashes.
  * JSON property names use camelCase. Nullable fields without defaults remain required in this contract;
  * optional fields have server defaults. Check README.md before implementing a client.
@@ -122,5 +122,27 @@ export interface UsersEndpoints {
     method: "GET"; path: "/api/v1/Users/Selective"; auth: "bearer";
     pathParams: never; query: { includeInactive?: boolean }; body: never;
     success: UserSelectiveDTO[]; successStatus: 200;
+  };
+}
+
+/** Administrator-mediated reset; POST /api/v1/Users/{id}/reset-password, bearer JWT required.
+ * Admin/RootAdmin only; only RootAdmin may reset another RootAdmin. Self reset is forbidden (403):
+ * use Auth.changePassword with the current password. Supply a trusted new password through the
+ * organization's existing secure channel; this operation sends no email and returns no secret.
+ * Path id and required body id must match. New password is required/non-null: minimum 12 UTF-16
+ * code units, maximum 72 UTF-8 bytes. Existing sessions are all invalidated, even for inactive users.
+ * 200 has no JSON body. Persian errors: 400 invalid password/ID mismatch, 401 invalid session,
+ * 403 insufficient hierarchy/self reset, 404 missing user, 429 throttled, 503 unavailable.
+ */
+export interface ResetUserPasswordCommand {
+  id: Uuid;
+  newPassword: string;
+}
+
+export interface UsersEndpoints {
+  resetPassword: {
+    method: "POST"; path: "/api/v1/Users/{id}/reset-password"; auth: "bearer";
+    pathParams: { id: Uuid }; query: never; body: ResetUserPasswordCommand;
+    success: void; successStatus: 200;
   };
 }

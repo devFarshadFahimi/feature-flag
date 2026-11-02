@@ -1,3 +1,4 @@
+using Application.Features.Auth.Commands.Passwords;
 using Application.Features.Users.Commands.ActivateUser;
 using Application.Features.Users.Commands.CreateUser;
 using Application.Features.Users.Commands.DeactivateUser;
@@ -12,6 +13,20 @@ namespace WebApi.Controllers;
 [Authorize]
 public class UsersController(IMediator mediator) : ApiControllerBase(mediator)
 {
+    [HttpPost("{id:guid}/reset-password")]
+    public async Task<IActionResult> ResetPassword(Guid id, [FromBody] ResetUserPasswordCommand command, CancellationToken cancellationToken)
+    {
+        if (id != command.Id)
+        {
+            return BadRequest(new
+            {
+                Message = "شناسه مسیر و درخواست یکسان نیست."
+            });
+        }
+
+        return await SendAsync(command, cancellationToken);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateUserCommand command, CancellationToken cancellationToken)
     {

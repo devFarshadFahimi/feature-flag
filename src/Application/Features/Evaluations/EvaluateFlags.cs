@@ -11,11 +11,11 @@ public interface IConfigurationSnapshots
 
 public record EvaluateFlagsCommand(Guid ProjectId, Guid EnvironmentId, string AppName, EvaluationContext Context, List<string>? FeatureNames = null, Dictionary<string, bool>? Defaults = null, bool Preview = false) : IQueryRequest<EvaluationResponse>;
 public record EvaluationResponse(IReadOnlyList<FlagDecision> Features, DateTimeOffset EvaluatedAt, DateTimeOffset SnapshotLoadedAt, bool Stale, int RefreshAfterSeconds, int MaxStaleSeconds);
-internal sealed class EvaluateFlagsHandler(IApplicationDbContext db, IConfigurationSnapshots snapshots, IUserInfoService actor, IOptions<EvaluationSettings> options) : QueryRequestHandler<EvaluateFlagsCommand, EvaluationResponse>
+internal sealed class EvaluateFlagsHandler(IApplicationDbContext db, IConfigurationSnapshots snapshots, IUserInfoService actor, IOptions<EvaluationSettings> options, IOptions<Metrics.BackgroundWorkSettings> backgroundOptions) : QueryRequestHandler<EvaluateFlagsCommand, EvaluationResponse>
 {
     /// <summary>Authorizes every call before cached rules and durably records usage before acknowledging decisions.</summary>
-    /// <param name="request">The request containing the operation's input and scope.</param>
-    /// <param name="ct">Cancels the operation and its database or network requests.</param>
+    /// <param name = "request">The request containing the operation's input and scope.</param>
+    /// <param name = "ct">Cancels the operation and its database or network requests.</param>
     /// <returns>The operation result, including the requested response data when applicable.</returns>
     public override async Task<EvaluationResponse> Handle(EvaluateFlagsCommand request, CancellationToken ct)
     {
@@ -54,7 +54,7 @@ internal sealed class EvaluateFlagsHandler(IApplicationDbContext db, IConfigurat
 
         if (!request.Preview)
         {
-            await Metrics.FlagMetrics.RecordEvaluationAsync(db, request.ProjectId, request.EnvironmentId, request.AppName, results, ct);
+            await Metrics.FlagMetrics.RecordEvaluationAsync(db, request.ProjectId, request.EnvironmentId, request.AppName, results, backgroundOptions.Value.MaxPendingBatches, ct);
         }
 
         return new(results, now, snapshot.LoadedAt, now - snapshot.LoadedAt >= TimeSpan.FromSeconds(options.Value.RefreshSeconds), options.Value.RefreshSeconds, options.Value.MaxStaleSeconds);

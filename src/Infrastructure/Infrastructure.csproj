@@ -1,10 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="BusinessFramework.Application.Service" />
         <PackageReference Include="BusinessFramework.Domain.Core" />
+        <PackageReference Include="BusinessFramework.Endpoint.WebApi" />
+        <PackageReference Include="BusinessFramework.Shared.Extensions.Caching.Distributed.Redis" />
         <PackageReference Include="BusinessFramework.Infrastructure.Common" />
         <PackageReference Include="BusinessFramework.Infrastructure.SqlCommand" />
         <PackageReference Include="BusinessFramework.Infrastructure.SqlQuery" />

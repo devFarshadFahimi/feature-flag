@@ -263,7 +263,7 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
         {
             if (await Application.Features.ChangeRequests.ConfigurationChanges
                 .SegmentReferences(db, protectedSegmentId)
-                .AnyAsync(s => (db.Environments.Any(e => e.Id == s.EnvironmentId && e.Protected) || db.ProjectEnvironmentPolicies.Any(p => p.ProjectId == s.Feature.ProjectId && p.EnvironmentId == s.EnvironmentId && p.Enabled)), ct))
+                .AnyAsync(s => db.Environments.Any(e => e.Id == s.EnvironmentId && e.Protected) || db.ProjectEnvironmentPolicies.Any(p => p.ProjectId == s.Feature.ProjectId && p.EnvironmentId == s.EnvironmentId && p.Enabled), ct))
             {
                 context.Result = Problem(409, "بخش در محیط حفاظت‌شده استفاده می‌شود؛ درخواست تغییر لازم است.");
 

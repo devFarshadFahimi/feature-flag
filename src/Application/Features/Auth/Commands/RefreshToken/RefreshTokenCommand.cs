@@ -1,43 +1,62 @@
+using System.Security.Claims;
 using Application.Features.Auth.Commands.Login;
+using TokenEntity = Domain.Aggregates.UserAggregate.RefreshToken;
 
 namespace Application.Features.Auth.Commands.RefreshToken;
 
 public record RefreshTokenCommand(string AccessToken, string RefreshToken) : ICommandRequest<LoginResponse>;
 internal class RefreshTokenCommandHandler(IApplicationDbContext dbContext, IJwtTokenGenerator jwtTokenGenerator, IOptions<JwtSettings> jwtSettings) : CommandRequestHandler<RefreshTokenCommand, LoginResponse>
 {
+    /// <summary>Locks the account for single-use rotation and commits account-wide revocation before rejecting replay.</summary>
+    /// <param name = "request">The requested account operation.</param>
+    /// <param name = "cancellationToken">Cancels database operations.</param>
+    /// <returns>The successful result after persistence.</returns>
     public override async Task<Result<LoginResponse>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
-        // Validate access token (even if expired)
+        if (string.IsNullOrEmpty(request.AccessToken) || string.IsNullOrEmpty(request.RefreshToken) || request.RefreshToken.Length > 512)
+        {
+            throw new UnauthorizedAccessException("توکن تمدید معتبر نیست.");
+        }
+
         var principal = jwtTokenGenerator.ValidateToken(request.AccessToken);
 
-        if (principal == null)
+        if (principal is null || !Guid.TryParse((principal.FindFirst(IdentityClaimNames.Subject) ?? principal.FindFirst(ClaimTypes.NameIdentifier))?.Value, out var userId))
         {
             throw new UnauthorizedAccessException("توکن دسترسی معتبر نیست.");
         }
 
-        var userId = Guid.Parse(principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException("اطلاعات هویتی توکن معتبر نیست."));
+        var tokenHash = TokenEntity.Hash(request.RefreshToken);
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
         await dbContext.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"App\".\"TblUser\" WHERE \"Id\" = {userId} FOR UPDATE", cancellationToken);
 
         var user = await dbContext.Users
-            .Include(u => u.RefreshTokens)
-            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken) ?? throw new KeyNotFoundException("رکورد درخواستی یافت نشد.");
-        var refreshToken = user.RefreshTokens.FirstOrDefault(rt => rt.Token == request.RefreshToken) ?? throw new UnauthorizedAccessException("توکن تمدید معتبر نیست.");
+            .Include(u => u.RefreshTokens.Where(t => t.Token == tokenHash || (t.Token == request.RefreshToken && !t.Token.StartsWith(TokenEntity.HashPrefix))))
+            .SingleOrDefaultAsync(u => u.Id == userId, cancellationToken) ?? throw new UnauthorizedAccessException("توکن تمدید معتبر نیست.");
+        var refreshToken = user.RefreshTokens.SingleOrDefault() ?? throw new UnauthorizedAccessException("توکن تمدید معتبر نیست.");
 
-        if (!user.IsActive || principal.FindFirst(Application.Common.Services.IdentityClaimNames.SecurityVersion)?.Value != user.SecurityVersion.ToString())
+        if (!refreshToken.Token.StartsWith(TokenEntity.HashPrefix, StringComparison.Ordinal) || refreshToken.IsUsed)
         {
-            throw new UnauthorizedAccessException("حساب کاربری غیرفعال است یا نشست اعتبار ندارد.");
+            user.RevokeAllRefreshTokens();
+            await dbContext.Users
+                .Where(u => u.Id == userId)
+                .SelectMany(u => u.RefreshTokens)
+                .Where(t => !t.IsRevoked)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(t => t.IsRevoked, true), cancellationToken);
+
+            await dbContext.SaveChangeAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            throw new UnauthorizedAccessException("نشست به دلیل استفاده مجدد یا قدیمی بودن توکن لغو شد؛ دوباره وارد شوید.");
         }
 
-        if (!refreshToken.IsValid())
+        if (!user.IsActive || principal.FindFirst(IdentityClaimNames.SecurityVersion)?.Value != user.SecurityVersion.ToString() || !refreshToken.IsValid())
         {
-            throw new UnauthorizedAccessException("توکن تمدید منقضی، مصرف یا لغو شده است.");
+            throw new UnauthorizedAccessException("توکن تمدید معتبر نیست.");
         }
 
-        // Mark old token as used
         refreshToken.MarkAsUsed();
-        // Generate new tokens
+
         var newAccessToken = jwtTokenGenerator.GenerateAccessToken(user);
         var newRefreshTokenValue = jwtTokenGenerator.GenerateRefreshToken();
         var settings = jwtSettings.Value;
@@ -45,17 +64,9 @@ internal class RefreshTokenCommandHandler(IApplicationDbContext dbContext, IJwtT
             .NewGuid()
             .ToString(), TimeSpan.FromDays(settings.RefreshTokenExpirationDays));
 
-        try
-        {
-            await dbContext.SaveChangeAsync(cancellationToken);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw new UnauthorizedAccessException("توکن تمدید قبلاً مصرف شده است.");
-        }
-
+        await dbContext.SaveChangeAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return Ok(new LoginResponse(newAccessToken, newRefreshToken.Token, DateTime.UtcNow.AddMinutes(settings.AccessTokenExpirationMinutes), newRefreshToken.ExpiresAt, new Application.Features.Auth.Commands.Login.UserResponse(user.Id, user.Email, user.Name, user.Role.ToString())));
+        return Ok(new LoginResponse(newAccessToken, newRefreshTokenValue, DateTime.UtcNow.AddMinutes(settings.AccessTokenExpirationMinutes), newRefreshToken.ExpiresAt, new UserResponse(user.Id, user.Email, user.Name, user.Role.ToString())));
     }
 }

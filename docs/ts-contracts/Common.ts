@@ -123,3 +123,10 @@ export enum UserRole {
   RootAdmin = 3
 }
 
+// Controller endpoints use shared Redis fixed-window limits per source IP and endpoint.
+// Defaults per 60 seconds: login 10, refresh 60, evaluation 600, other actions 120.
+// Framework fixed-window limits partition by source IP, HTTP method, route, application and environment.
+// HTTP 429 carries Retry-After (remaining window rounded up to seconds, minimum 1) and Persian ProblemDetails.
+// Do not submit again before that delay.
+// HTTP 503 can also mean the limiter's Redis storage is unavailable; no controller operation ran in that case.
+// Hosting configuration can change these limits. Browsers continue calling through their own backend.

@@ -1,7 +1,9 @@
 using Application.Common.Services;
 using BusinessMakerFramework.Endpoint.WebApi.ApiDescriptorSetup;
 using Infrastructure;
+using Infrastructure.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using WebApi.Configuration;
 
 namespace WebApi.ProgramConfiguration;
 
@@ -22,8 +24,28 @@ public static class ApplicationBuilder
         }
 
         _ = app.UseExceptionHandler();
+        _ = app.UseForwardedHeaders();
+
+        if (!app.Environment.IsDevelopment())
+        {
+            app.Use(async (context, next) =>
+            {
+                if (!context.Request.IsHttps && context.Request.Path != "/health/live" && context.Request.Path != "/health/ready")
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    await context.Response.WriteAsJsonAsync(new ProblemDetails { Status = StatusCodes.Status400BadRequest, Title = "برای دسترسی به سرویس، ارتباط امن HTTPS الزامی است." }, context.RequestAborted);
+
+                    return;
+                }
+
+                await next(context);
+            });
+            _ = app.UseHsts();
+        }
+
         app.MapOpenApiAndScalar();
         _ = app.UseHttpsRedirection();
+        _ = app.UseRouting();
         _ = app.UseCors(policy =>
         {
             var origins = app.Configuration
@@ -40,6 +62,7 @@ public static class ApplicationBuilder
                     .AllowAnyMethod();
             }
         });
+        app.UseFeatureFlagRateLimits();
         _ = app.UseAuthentication();
         _ = app.UseAuthorization();
         app.UseHealthCheckEndpoints();
@@ -49,7 +72,9 @@ public static class ApplicationBuilder
         _ = app
             .MapGet("/health/ready", ReadinessAsync)
             .AllowAnonymous();
-        _ = app.MapControllers();
+        app
+            .MapControllers()
+            .Add(endpoint => endpoint.ApplyRateLimit(app.Services.GetRequiredService<RateLimitSettings>()));
         _ = app.MapApiDescriptor();
         app.Run();
     }

@@ -10,15 +10,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 Console.OutputEncoding = Encoding.UTF8;
-
 using var cancellation = new CancellationTokenSource();
-
 Console.CancelKeyPress += (_, eventArgs) =>
 {
     eventArgs.Cancel = true;
     cancellation.Cancel();
 };
-
 try
 {
     // Environment variables override JSON, for example FeatureFlagProvider__Password.
@@ -27,16 +24,17 @@ try
         .AddJsonFile("appsettings.json", optional: false)
         .AddEnvironmentVariables()
         .Build();
-
     using var configurationLifetime = configuration as IDisposable;
-
     var request = ReadEvaluationRequest(configuration.GetSection("Evaluation"));
     var showFeatureTypes = true; //args.Contains("--feature-types", StringComparer.Ordinal);
     var exampleSettings = configuration.GetSection("FeatureTypeExamples");
 
     if (showFeatureTypes)
     {
-        request = request with { FeatureNames = FeatureTypeExamples.GetFeatureNames(exampleSettings) };
+        request = request with
+        {
+            FeatureNames = FeatureTypeExamples.GetFeatureNames(exampleSettings)
+        };
     }
 
     var services = new ServiceCollection();
@@ -44,14 +42,12 @@ try
     services.AddFeatureFlagProvider(configuration.GetSection(FeatureFlagProviderOptions.SectionName));
 
     using var container = services.BuildServiceProvider();
-
-    // Keep this same typed-client instance: it stores tokens and refreshes them automatically.
+    // The registered provider stores login state across resolutions and refreshes tokens automatically.
     var provider = container.GetRequiredService<FeatureFlagProvider>();
 
     Console.WriteLine("1. Requesting an access token...");
 
     var tokens = await provider.IssueTokenAsync(cancellation.Token);
-
     // Never print or persist access/refresh tokens or the configured password.
     Console.WriteLine($"Login successful; access token expires at {tokens.AccessTokenExpiration:O}");
     Console.WriteLine("2. Evaluating flags with the issued token...");
@@ -61,7 +57,6 @@ try
     Console.WriteLine($"Evaluated at: {response.EvaluatedAt:O}");
     Console.WriteLine($"Configuration loaded at: {response.SnapshotLoadedAt:O}");
     Console.WriteLine($"Stale configuration: {response.Stale}; refresh after {response.RefreshAfterSeconds} seconds");
-
     foreach (var feature in response.Features)
     {
         Console.WriteLine($"{feature.Name}: enabled={feature.Enabled}, reason={feature.Reason}, revision={feature.Revision}");
@@ -124,6 +119,7 @@ try
 catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
 {
     Console.Error.WriteLine("The request was canceled.");
+
     return 130;
 }
 catch (HttpRequestException exception)
@@ -135,42 +131,37 @@ catch (HttpRequestException exception)
         HttpStatusCode.NotFound => "The project, environment, or service endpoint was not found.",
         _ => "The feature flag service request failed; check the service URL, connection, and request settings."
     };
-
     // A failed HTTP request is an application error, never an authoritative disabled flag.
     Console.Error.WriteLine(message);
+
     return 1;
 }
 catch (Exception exception) when (exception is OptionsValidationException or ArgumentException or InvalidOperationException or IOException or FormatException)
 {
     Console.Error.WriteLine("Invalid configuration; check the service URL, username, password, project ID, and environment ID.");
     Console.Error.WriteLine("Set the password using the FeatureFlagProvider__Password environment variable; do not store it in the sample file.");
+
     return 1;
 }
+
 // Builds an evaluation; the targeting user is separate from the account used to log in.
 static EvaluationRequest ReadEvaluationRequest(IConfiguration settings)
 {
     var appName = settings["AppName"];
 
-    if (!Guid.TryParse(settings["ProjectId"], out var projectId) || projectId == Guid.Empty
-        || !Guid.TryParse(settings["EnvironmentId"], out var environmentId) || environmentId == Guid.Empty
-        || string.IsNullOrWhiteSpace(appName))
+    if (!Guid.TryParse(settings["ProjectId"], out var projectId) || projectId == Guid.Empty || !Guid.TryParse(settings["EnvironmentId"], out var environmentId) || environmentId == Guid.Empty || string.IsNullOrWhiteSpace(appName))
     {
         throw new ArgumentException("A valid project ID, environment ID, and application name are required.");
     }
 
     var context = settings.GetSection("Context");
-
     // Use feature names, never feature IDs. Null selects all active flags (server limit: 1,000).
     // An empty array selects none; specify at most 100 names for a batch.
-    var featureNames = settings.GetSection("FeatureNames").Get<string[]>();
+    var featureNames = settings
+        .GetSection("FeatureNames")
+        .Get<string[]>();
 
-    return new EvaluationRequest(
-        projectId,
-        environmentId,
-        appName,
-        new EvaluationContext(
-            UserId: context["UserId"],
-            SessionId: context["SessionId"],
-            Properties: context.GetSection("Properties").Get<Dictionary<string, string>>()),
-        FeatureNames: featureNames);
+    return new EvaluationRequest(projectId, environmentId, appName, new EvaluationContext(UserId: context["UserId"], SessionId: context["SessionId"], Properties: context
+        .GetSection("Properties")
+        .Get<Dictionary<string, string>>()), FeatureNames: featureNames);
 }

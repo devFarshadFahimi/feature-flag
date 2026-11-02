@@ -11,7 +11,7 @@
  * Names/keys are ordinal. Properties <=50, each value <=1,024 characters. Runtime ignores currentTime;
  * preview can simulate it. Missing names use defaults[name] or false; permission failures never do.
  * A successful runtime evaluation durably queues usage; aggregate metrics may appear a few seconds later.
- * Persistence failures return an error rather than silently losing usage. A client retry is a new evaluation.
+ * Persistence failures or a full bounded usage queue return 503. Retry later; a client retry is a new evaluation.
  * Weighted variant ranges use ordinal variant-name order, so database row ordering cannot change assignments.
  */
 import type { Uuid, IsoDateTime } from "./Common";

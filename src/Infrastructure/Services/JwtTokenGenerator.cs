@@ -52,14 +52,17 @@ public class JwtTokenGenerator : IJwtTokenGenerator
     public ClaimsPrincipal? ValidateToken(string token)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(_jwtSettings.SecretKey);
+        var keys = _jwtSettings.PreviousSigningKeys
+            .Prepend(_jwtSettings.SecretKey)
+            .Select(value => new SymmetricSecurityKey(Encoding.UTF8.GetBytes(value)))
+            .ToArray();
 
         try
         {
             var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
+                IssuerSigningKeys = keys,
                 ValidateIssuer = true,
                 ValidIssuer = _jwtSettings.Issuer,
                 ValidateAudience = true,

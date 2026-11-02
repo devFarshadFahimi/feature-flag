@@ -1,3 +1,4 @@
+using Application.Features.Auth.Commands.Login;
 using BusinessMakerFramework.Domain.Core.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ public sealed class ApiProblemHandler(ILogger<ApiProblemHandler> logger) : IExce
     {
         var (status, message) = exception switch
         {
+            LoginRejectedException => (401, "ایمیل یا گذرواژه نادرست است."),
             UnauthorizedAccessException => (401, "نشست کاربری معتبر نیست."),
             System.Security.SecurityException => (403, "اجازه انجام این عملیات را ندارید."),
             KeyNotFoundException => (404, "رکورد درخواستی یافت نشد."),

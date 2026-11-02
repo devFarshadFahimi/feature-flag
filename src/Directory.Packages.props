@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <MicrosoftRelatedPackagesVersion>10.0.13</MicrosoftRelatedPackagesVersion>
-    <BusinessFrameworkPackagesVersion>0.3.22-preview</BusinessFrameworkPackagesVersion>
+    <BusinessFrameworkPackagesVersion>0.3.23-preview</BusinessFrameworkPackagesVersion>
     <BuildingBlockPackagesVersion>0.3.4-preview</BuildingBlockPackagesVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -27,6 +27,7 @@
     <PackageVersion Include="BusinessFramework.Shared.Abstractions.UserManagement" Version="$(BusinessFrameworkPackagesVersion)" />
     <PackageVersion Include="BusinessFramework.Shared.Abstractions.Serializer" Version="$(BusinessFrameworkPackagesVersion)" />
     <PackageVersion Include="BusinessFramework.Shared.Extensions.Caching.InMemory" Version="$(BusinessFrameworkPackagesVersion)" />
+    <PackageVersion Include="BusinessFramework.Shared.Extensions.Caching.Distributed.Redis" Version="$(BusinessFrameworkPackagesVersion)" />
     <PackageVersion Include="BusinessFramework.Shared.Extensions.Serializer.Microsoft" Version="$(BusinessFrameworkPackagesVersion)" />
     <PackageVersion Include="BusinessFramework.Shared.Utilities" Version="$(BusinessFrameworkPackagesVersion)" />
     <PackageVersion Include="prometheus-net" Version="8.2.1" />

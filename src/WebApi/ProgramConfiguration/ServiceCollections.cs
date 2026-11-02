@@ -5,6 +5,7 @@ using BusinessMakerFramework.Endpoint.WebApi.ScalarSetup.Transformers;
 using BusinessMakerFramework.Endpoint.WebApi.SwaggerSetup;
 using EdgeServicesBuildingBlock.Shared.ExceptionHandlers;
 using Infrastructure;
+using Infrastructure.RateLimiting;
 using WebApi.Configuration;
 
 namespace WebApi.ProgramConfiguration;
@@ -17,7 +18,7 @@ public static class ServiceCollections
             .GetSection("Cors:AllowedOrigins")
             .Get<string[]>() ?? [];
 
-        if (origins.Any(origin => !Uri.TryCreate(origin, UriKind.Absolute, out var uri) || uri.Scheme is not("http" or "https") || !string.IsNullOrEmpty(uri.UserInfo) || uri.GetLeftPart(UriPartial.Authority) != origin.TrimEnd('/')))
+        if (origins.Any(origin => !Uri.TryCreate(origin, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) || !string.IsNullOrEmpty(uri.UserInfo) || uri.GetLeftPart(UriPartial.Authority) != origin.TrimEnd('/')))
         {
             throw new InvalidOperationException("فهرست مبدأهای مجاز مرورگر معتبر نیست؛ نشانی دقیق مبدأ لازم است.");
         }
@@ -38,14 +39,21 @@ public static class ServiceCollections
                 Extensions =
                 {
                     ["fields"] = context.ModelState
-            .Where(p => p.Value?.Errors.Count > 0)
-            .Select(p => p.Key)
-            .ToArray()
+                        .Where(p => p.Value?.Errors.Count > 0)
+                        .Select(p => p.Key)
+                        .ToArray()
                 }
             }));
         _ = builder.Services.AddFrameworkApiVersioning();
         _ = builder.Services.AddInfrastructureServices(builder.Configuration);
         _ = builder.Services.AddApplicationServices();
+        builder.AddFeatureFlagRateLimits();
+        builder.AddTransportSecurity();
+        builder.Services
+            .AddOptions<Application.Features.Metrics.BackgroundWorkSettings>()
+            .Bind(builder.Configuration.GetSection("BackgroundWork"))
+            .Validate(settings => settings.IsValid(), "تنظیمات پردازش پس‌زمینه معتبر نیست.")
+            .ValidateOnStart();
         _ = builder.Services
             .AddHttpClient()
             .AddHttpContextAccessor();

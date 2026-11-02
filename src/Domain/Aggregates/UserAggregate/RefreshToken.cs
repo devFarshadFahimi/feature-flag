@@ -2,22 +2,16 @@ namespace Domain.Aggregates.UserAggregate;
 
 public sealed class RefreshToken : Entity<int>
 {
+    public const string HashPrefix = "sha256:";
+
     public Guid UserId
     {
         get; private set;
     }
 
-    public string Token
-    {
-        get; private set;
-    }
-    = string.Empty;
+    public string Token { get; private set; } = string.Empty;
 
-    public string JwtId
-    {
-        get; private set;
-    }
-    = string.Empty;
+    public string JwtId { get; private set; } = string.Empty;
 
     public bool IsUsed
     {
@@ -48,7 +42,7 @@ public sealed class RefreshToken : Entity<int>
         return new RefreshToken
         {
             UserId = userId,
-            Token = token,
+            Token = Hash(token),
             JwtId = jwtId,
             IsUsed = false,
             IsRevoked = false,
@@ -57,8 +51,21 @@ public sealed class RefreshToken : Entity<int>
         };
     }
 
+    /// <summary>Stores only a marked digest of the high-entropy bearer secret.</summary>
+    /// <param name = "token">The raw bearer secret.</param>
+    /// <returns>The marked SHA-256 digest suitable for storage and indexed lookup.</returns>
+    public static string Hash(string token)
+    {
+        return HashPrefix + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token)));
+    }
+
     public void MarkAsUsed()
     {
+        if (!IsValid())
+        {
+            throw new InvalidEntityStateException("توکن تمدید معتبر نیست.");
+        }
+
         IsUsed = true;
     }
 

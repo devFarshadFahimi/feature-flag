@@ -14,6 +14,14 @@ public sealed class EvaluationBatchConfiguration : IEntityTypeConfiguration<Eval
         builder
             .Property(batch => batch.Counts)
             .HasColumnType(PersistenceNames.JsonColumnType);
-        builder.HasIndex(batch => new { batch.RecordedAt, batch.Id });
+        builder
+            .Property(batch => batch.Status)
+            .HasMaxLength(32)
+            .HasDefaultValue(EvaluationBatch.PendingStatus);
+        builder
+            .Property(batch => batch.FailureReason)
+            .HasMaxLength(512);
+        builder.HasIndex(batch => new { batch.Status, batch.RecordedAt, batch.Id });
+        builder.HasIndex(batch => batch.QuarantinedAt);
     }
 }

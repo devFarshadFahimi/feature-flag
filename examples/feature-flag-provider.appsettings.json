@@ -1,6 +1,9 @@
 {
   "FeatureFlagProvider": {
     "BaseUri": "http://localhost:5010/api/v1/",
+    "AllowInsecureLoopback": true,
+    "RequestTimeoutSeconds": 10,
+    "EnableLastKnownGoodFallback": false,
     "AuthEndpoint": "Auth/login",
     "username": "some-user@example.com",
     "password": ""

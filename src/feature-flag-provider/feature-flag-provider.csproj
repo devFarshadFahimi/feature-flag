@@ -1,9 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <RootNamespace>FeatureFlag.Provider</RootNamespace>
         <IsPackable>true</IsPackable>
         <PackageId>feature-flag-provider</PackageId>
-        <Version>1.0.3</Version>
+        <Version>1.0.4</Version>
         <Description>HTTP client for feature-flag login, automatic token refresh and evaluation.</Description>
     </PropertyGroup>
     <ItemGroup>

@@ -5,10 +5,12 @@ internal class CreateUserCommandHandler(IApplicationDbContext dbContext, IPasswo
 {
     public override async Task<Result<Guid>> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
-        if (!Enum.IsDefined(request.Role) || string.IsNullOrWhiteSpace(request.Email) || request.Password.Length < 12)
+        if (!Enum.IsDefined(request.Role) || string.IsNullOrWhiteSpace(request.Email))
         {
-            throw new ArgumentException("ایمیل، گذرواژه یا نقش کاربری معتبر نیست؛ گذرواژه باید حداقل ۱۲ نویسه داشته باشد.");
+            throw new ArgumentException("ایمیل یا نقش کاربری معتبر نیست.");
         }
+
+        Application.Features.Auth.Commands.Passwords.PasswordRules.Validate(request.Password);
 
         var currentRole = await dbContext.Users
             .Where(u => u.Id == actor.Id() && u.IsActive)
