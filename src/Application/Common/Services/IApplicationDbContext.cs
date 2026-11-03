@@ -106,5 +106,7 @@ public interface IApplicationDbContext
         get; set;
     }
 
+    DbSet<Domain.Aggregates.RateLimitAggregate.RateLimitRejectionSummary> RateLimitRejectionSummaries { get; }
+
     Task SaveChangeAsync(CancellationToken cancellationToken = default);
 }

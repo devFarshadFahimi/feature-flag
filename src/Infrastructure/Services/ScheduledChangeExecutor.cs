@@ -4,6 +4,7 @@ using Application.Features.Evaluations;
 using Application.Features.Metrics;
 using Domain.Aggregates.UsageAggregate;
 using Domain.Enums;
+using Infrastructure.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -37,6 +38,7 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
                     }
                 }, "اجرای تغییرات زمان‌بندی‌شده ناموفق بود.", stoppingToken);
                 await RunPhaseAsync(AggregateUsageAsync, "تجمیع آمار ارزیابی ناموفق بود.", stoppingToken);
+                await RunPhaseAsync(FlushRateLimitHistoryAsync, "ذخیره تاریخچه محدودسازی درخواست‌ها ناموفق بود.", stoppingToken);
                 await CleanupAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -68,6 +70,26 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
         }
 
         return exception is DbUpdateException { InnerException: { } inner } && IsInvalidBatch(inner);
+    }
+
+    // Reuses the existing worker; request handling never writes history directly to PostgreSQL.
+    private async Task FlushRateLimitHistoryAsync(CancellationToken ct)
+    {
+        using var scope = scopes.CreateScope();
+        var settings = scope.ServiceProvider.GetService<RateLimitSettings>();
+
+        if (settings?.Enabled != true)
+        {
+            return;
+        }
+
+        var history = scope.ServiceProvider.GetRequiredService<RateLimitHistorySettings>();
+        var host = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+        var redis = scope.ServiceProvider.GetRequiredService<StackExchange.Redis.IConnectionMultiplexer>();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var key = RateLimitHistory.StreamKey(settings.KeyPrefix, host.ApplicationName, host.EnvironmentName);
+
+        await RateLimitHistory.FlushAsync(db, redis.GetDatabase(), key, history, logger, ct);
     }
 
     /// <summary>Isolates failures so unrelated work categories continue during the same tick.</summary>
@@ -293,5 +315,21 @@ public sealed class ScheduledChangeExecutor(IServiceScopeFactory scopes, IConfig
                 .Take(limit)
                 .ExecuteDeleteAsync(token);
         }, "پاک‌سازی نشست‌های منقضی‌شده ناموفق بود.", ct);
+        var history = scope.ServiceProvider.GetService<RateLimitHistorySettings>();
+
+        if (history is not null)
+        {
+            var historyCutoff = DateTime.UtcNow.AddDays(-history.RetentionDays);
+
+            await RunPhaseAsync(
+                async token =>
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"""
+                    DELETE FROM "App"."RateLimitRejectionSummary" WHERE ctid IN
+                    (SELECT ctid FROM "App"."RateLimitRejectionSummary" WHERE "Minute" < {historyCutoff} LIMIT {limit})
+                    """, token);
+            }, "پاک‌سازی تاریخچه محدودسازی درخواست‌ها ناموفق بود.", ct);
+        }
     }
 }

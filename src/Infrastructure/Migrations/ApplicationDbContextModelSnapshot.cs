@@ -570,6 +570,60 @@ namespace Infrastructure.Migrations
                     b.ToTable("TblProjectMember", "App");
                 });
 
+            modelBuilder.Entity("Domain.Aggregates.RateLimitAggregate.RateLimitRejectionSummary", b =>
+                {
+                    b.Property<string>("BucketKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("Minute")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Application")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("FirstRejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<DateTime>("LastRejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<long>("RejectedRequests")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Route")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.HasKey("BucketKey", "Minute");
+
+                    b.HasIndex("Minute");
+
+                    b.HasIndex("IpAddress", "Minute");
+
+                    b.HasIndex("Application", "Environment", "Minute");
+
+                    b.ToTable("RateLimitRejectionSummary", "App");
+                });
+
             modelBuilder.Entity("Domain.Aggregates.SegmentAggregate.Segment", b =>
                 {
                     b.Property<int>("Id")
@@ -952,6 +1006,28 @@ namespace Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_Variant_OneOwner", "(\"FeatureEnvironmentId\" IS NULL) <> (\"StrategyId\" IS NULL)");
                         });
+                });
+
+            modelBuilder.Entity("Infrastructure.RateLimiting.RateLimitHistoryCheckpoint", b =>
+                {
+                    b.Property<string>("StreamKey")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<long>("DiscardedEntries")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("LastProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastStreamId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("StreamKey");
+
+                    b.ToTable("RateLimitHistoryCheckpoint", "App");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>

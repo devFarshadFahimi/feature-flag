@@ -123,10 +123,24 @@ export enum UserRole {
   RootAdmin = 3
 }
 
-// Controller endpoints use shared Redis fixed-window limits per source IP and endpoint.
-// Defaults per 60 seconds: login 10, refresh 60, evaluation 600, other actions 120.
-// Framework fixed-window limits partition by source IP, HTTP method, route, application and environment.
-// HTTP 429 carries Retry-After (remaining window rounded up to seconds, minimum 1) and Persian ProblemDetails.
+// Controller/action attributes and per-type route arrays configure the shared Redis limiters.
+// Defaults: login 10/60s and refresh 60/60s sliding windows; evaluation 600/60s and general 120/60s fixed windows.
+// Different limiter types compose; for the same type, explicit attributes override configuration,
+// and exact paths override controller patterns (e.g. evaluations/*), which override the * fallback.
+// Optional methods restrict a rule to endpoints whose HTTP methods all match that list.
+// All limits partition by source IP, HTTP method, route, application and environment.
+// HTTP 429 carries Retry-After (rounded up to seconds, minimum 1) and Persian application/problem+json.
 // Do not submit again before that delay.
 // HTTP 503 can also mean the limiter's Redis storage is unavailable; no controller operation ran in that case.
 // Hosting configuration can change these limits. Browsers continue calling through their own backend.
+// Redis keeps separate rejected-IP diagnostics for 15 minutes of inactivity; these do not affect admission.
+/* Hosting configuration examples (use real routes; prefix api/v1/ is optional):
+ * "FixedWindowRateLimit": [{ "path": "projects/*", "limit": 120, "windowSeconds": 60 }]
+ * "SlidingWindowRateLimit": [{ "path": "auth/login", "methods": ["POST"], "limit": 10, "windowSeconds": 60 }]
+ * "TokenBucketRateLimit": [{ "path": "evaluations/*", "capacity": 100, "refillRate": 10 }]
+ * "ConcurrencyRateLimit": [{ "path": "evaluations/*", "maxConcurrentRequests": 20 }]
+ * refillRate is tokens per second; the concurrency limit counts in-flight requests.
+ * Empty arrays disable that configured type; explicit C# attributes can still apply.
+ * Changes take effect after application restart. Arrays in environment-specific configuration override by index;
+ * setting an empty array in an override file does not erase entries inherited from appsettings.json.
+ */

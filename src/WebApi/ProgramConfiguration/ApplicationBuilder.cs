@@ -3,7 +3,6 @@ using BusinessMakerFramework.Endpoint.WebApi.ApiDescriptorSetup;
 using Infrastructure;
 using Infrastructure.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using WebApi.Configuration;
 
 namespace WebApi.ProgramConfiguration;
 
@@ -72,9 +71,7 @@ public static class ApplicationBuilder
         _ = app
             .MapGet("/health/ready", ReadinessAsync)
             .AllowAnonymous();
-        app
-            .MapControllers()
-            .Add(endpoint => endpoint.ApplyRateLimit(app.Services.GetRequiredService<RateLimitSettings>()));
+        app.MapRateLimitedControllers();
         _ = app.MapApiDescriptor();
         app.Run();
     }

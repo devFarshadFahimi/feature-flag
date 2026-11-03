@@ -56,6 +56,8 @@ public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext>
 
     public DbSet<Domain.Aggregates.UsageAggregate.ImpressionBatch> ImpressionBatches => Set<Domain.Aggregates.UsageAggregate.ImpressionBatch>();
 
+    public DbSet<Domain.Aggregates.RateLimitAggregate.RateLimitRejectionSummary> RateLimitRejectionSummaries => Set<Domain.Aggregates.RateLimitAggregate.RateLimitRejectionSummary>();
+
     public Task SaveChangeAsync(CancellationToken cancellationToken = default) => SaveChangesAsync(cancellationToken);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

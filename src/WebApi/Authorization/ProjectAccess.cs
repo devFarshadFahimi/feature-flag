@@ -57,7 +57,7 @@ public sealed class ProjectAccess(IApplicationDbContext db) : IAsyncActionFilter
             write = false;
         }
 
-        if (controller is "Users" or "Environments")
+        if (controller is "Users" or "Environments" or "RateLimitHistory")
         {
             if (!admin)
             {
